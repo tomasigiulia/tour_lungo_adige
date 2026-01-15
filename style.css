@@ -917,7 +917,7 @@ body.view-control-buttons .viewControlButton {
 }
 
 .modal-header {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, rgb(103,115,131), rgb(78,88,104));
   padding: 20px 24px;
   display: flex;
   justify-content: space-between;
@@ -961,6 +961,10 @@ body.view-control-buttons .viewControlButton {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  display: flex;
+  gap: 24px;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
 /* Scrollbar personalizzata */
@@ -983,12 +987,22 @@ body.view-control-buttons .viewControlButton {
   background: rgba(52, 152, 219, 0.8);
 }
 
+.modal-body-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-body-image {
+  flex: 0 0 40%;
+  max-width: 400px;
+}
+
 .modal-body img {
   width: 100%;
   height: auto;
   border-radius: 12px;
-  margin-bottom: 20px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  object-fit: cover;
 }
 
 .modal-body p {
@@ -1026,6 +1040,18 @@ body.view-control-buttons .viewControlButton {
   
   .modal-body {
     padding: 20px;
+    flex-direction: column;
+  }
+  
+  .modal-body-image {
+    flex: 0 0 auto;
+    max-width: 100%;
+    width: 100%;
+    order: 1;
+  }
+  
+  .modal-body-text {
+    order: 2;
   }
   
   .modal-body p {

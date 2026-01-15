@@ -360,12 +360,11 @@
     // Imposta il contenuto
     modalTitle.textContent = title;
 
-    // Costruisci il body con immagine e testo
-    var bodyContent = '';
+    // Costruisci il body con testo a sinistra e immagine a destra
+    var bodyContent = '<div class="modal-body-text"><p>' + text + '</p></div>';
     if (hotspot.image) {
-      bodyContent += '<img src="' + hotspot.image + '" alt="' + title + '" onerror="this.style.display=\'none\'">';
+      bodyContent += '<div class="modal-body-image"><img src="' + hotspot.image + '" alt="' + title + '" onerror="this.parentElement.style.display=\'none\';"></div>';
     }
-    bodyContent += '<p>' + text + '</p>';
 
     modalBody.innerHTML = bodyContent;
 
