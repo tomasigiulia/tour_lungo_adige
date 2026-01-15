@@ -149,7 +149,8 @@ body.fullscreen-enabled #fullscreenToggle {
   display: block;
   position: absolute;
   top: 0;
-  right: 40px;
+  /* spostato più a sinistra per lasciare spazio al pulsante mappa/fullscreen */
+  right: 80px;
   width: 40px;
   height: 40px;
   padding: 5px;
@@ -164,12 +165,13 @@ body.fullscreen-enabled #fullscreenToggle {
 }
 
 /* If there is a fullscreen button, autorotate must placed a bit to the left */
+/* When fullscreen button is present, keep autorotate offset accordingly */
 body.fullscreen-enabled #autorotateToggle {
-  right: 40px;
+  right: 80px;
 }
 
 body.fullscreen-enabled.mobile #autorotateToggle {
-  right: 50px;
+  right: 90px;
 }
 
 #autorotateToggle .icon {
@@ -1086,7 +1088,8 @@ body.view-control-buttons .viewControlButton {
   display: block;
   position: absolute;
   top: 0;
-  right: 50px;
+  /* posizionato immediatamente a sinistra del pulsante fullscreen */
+  right: 40px;
   width: 40px;
   height: 40px;
   background-color: rgb(103,115,131);
