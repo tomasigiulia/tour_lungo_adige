@@ -7,6 +7,8 @@
 <style> @-ms-viewport { width: device-width; } </style>
 <link rel="stylesheet" href="vendor/reset.min.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="multiple-scenes view-control-buttons">
 
@@ -39,7 +41,14 @@
 </a>
 
 <a href="javascript:void(0)" id="mapToggle" title="Mappa">
-  <img class="icon" src="img/map.png" alt="Mappa" style="width:28px;height:28px;filter:grayscale(1);">
+  <span class="icon" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 17L10 14L14 17L20 14V7L14 10L10 7L4 10V17Z" stroke="#888" stroke-width="2" fill="#e0e0e0"/>
+      <path d="M4 10L10 13L14 10L20 13" stroke="#888" stroke-width="2"/>
+      <path d="M10 13V7" stroke="#888" stroke-width="2"/>
+      <path d="M14 10V17" stroke="#888" stroke-width="2"/>
+    </svg>
+  </span>
 </a>
 
 <a href="javascript:void(0)" id="autorotateToggle">
@@ -78,14 +87,13 @@
 
 <!-- Modale mappa localizzazione immagini -->
 <div id="map-modal" style="display:none;">
-  <div class="modal-content">
+  <div class="modal-content" style="position: absolute; top: 40px; right: 40px; margin: 0;">
     <div class="modal-header">
       <h3 id="map-modal-title">Localizzazione immagini</h3>
       <button class="modal-close" onclick="closeMapModal()">&times;</button>
     </div>
     <div class="modal-body" id="map-modal-body" style="min-height:300px;">
-      <!-- Qui verrà inserita la mappa -->
-      <div id="map-container" style="width:100%;height:300px;"></div>
+      <div id="map-container" style="width:100%;height:300px; position:relative; z-index:1;"></div>
     </div>
   </div>
 </div>

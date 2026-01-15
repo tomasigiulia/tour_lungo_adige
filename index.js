@@ -389,6 +389,7 @@
   };
 
   // Chiudi modale cliccando fuori
+  // Chiudi solo la modale hotspot cliccando fuori, NON la mappa
   document.addEventListener('click', function(e) {
     var modal = document.getElementById('custom-hotspot-modal');
     if (modal && e.target === modal) {
@@ -409,9 +410,87 @@
       var modal = document.getElementById('map-modal');
       if (modal) {
         modal.style.display = 'flex';
+        setTimeout(function() {
+          var mapDiv = document.getElementById('map-container');
+          if (window._leafletMap && mapDiv) {
+            try { window._leafletMap.remove(); } catch(e) {}
+            window._leafletMap = null;
+          }
+          var coords = (window.APP_DATA && window.APP_DATA.coordinates) || [
+            { lat: 45.2213333333333, lng: 11.2943416666667 },
+            { lat: 45.2208555555556, lng: 11.2942472222222 },
+            { lat: 45.1443555555556, lng: 12.300925 }
+          ];
+          var map = L.map('map-container').setView([coords[0].lat, coords[0].lng], 13);
+          // Definisci i layer
+          var baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
+          var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
+          var cartoLayer = L.tileLayer('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', { attribution: '© CartoDB' });
+          var layers = [baseLayer, satelliteLayer, cartoLayer];
+          var currentLayer = 0;
+          layers[currentLayer].addTo(map);
+          // Marker panorami
+          var markers = coords.map(function(coord, i) {
+            var marker = L.marker([coord.lat, coord.lng]).addTo(map);
+            marker.bindPopup('Panorama ' + (i+1));
+            return marker;
+          });
+
+          // Controllo custom: cambio layer
+          var LayerControl = L.Control.extend({
+            options: { position: 'bottomright' },
+            onAdd: function(map) {
+              var btn = L.DomUtil.create('button', 'leaflet-control-custom');
+              btn.title = 'Cambia layer';
+              btn.style.background = '#3498db';
+              btn.style.border = 'none';
+              btn.style.borderRadius = '6px';
+              btn.style.width = '40px';
+              btn.style.height = '40px';
+              btn.style.display = 'flex';
+              btn.style.alignItems = 'center';
+              btn.style.justifyContent = 'center';
+              btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 17L10 14L14 17L20 14V7L14 10L10 7L4 10V17Z" stroke="white" stroke-width="2" fill="#3498db"/><path d="M4 10L10 13L14 10L20 13" stroke="white" stroke-width="2"/><path d="M10 13V7" stroke="white" stroke-width="2"/><path d="M14 10V17" stroke="white" stroke-width="2"/></svg>';
+              L.DomEvent.on(btn, 'click', function(e) {
+                map.removeLayer(layers[currentLayer]);
+                currentLayer = (currentLayer + 1) % layers.length;
+                layers[currentLayer].addTo(map);
+                L.DomEvent.stopPropagation(e);
+              });
+              return btn;
+            }
+          });
+          map.addControl(new LayerControl());
+
+          // Controllo custom: centra panorami
+          var CenterControl = L.Control.extend({
+            options: { position: 'bottomright' },
+            onAdd: function(map) {
+              var btn = L.DomUtil.create('button', 'leaflet-control-custom');
+              btn.title = 'Centra panorami';
+              btn.style.background = '#27ae60';
+              btn.style.border = 'none';
+              btn.style.borderRadius = '6px';
+              btn.style.width = '40px';
+              btn.style.height = '40px';
+              btn.style.display = 'flex';
+              btn.style.alignItems = 'center';
+              btn.style.justifyContent = 'center';
+              btn.style.marginLeft = '8px';
+              btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8" stroke="white" stroke-width="2" fill="#27ae60"/><circle cx="12" cy="12" r="2" fill="white"/><line x1="12" y1="2" x2="12" y2="6" stroke="white" stroke-width="2"/><line x1="12" y1="18" x2="12" y2="22" stroke="white" stroke-width="2"/><line x1="2" y1="12" x2="6" y2="12" stroke="white" stroke-width="2"/><line x1="18" y1="12" x2="22" y2="12" stroke="white" stroke-width="2"/></svg>';
+              L.DomEvent.on(btn, 'click', function(e) {
+                var group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.2));
+                L.DomEvent.stopPropagation(e);
+              });
+              return btn;
+            }
+          });
+          map.addControl(new CenterControl());
+
+          window._leafletMap = map;
+        }, 100);
       }
-      // Qui puoi integrare una mappa (Leaflet, Google Maps, ecc.)
-      // Esempio: document.getElementById('map-container').innerHTML = '<div>Qui la mappa</div>';
     });
   }
   window.closeMapModal = function() {
