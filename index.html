@@ -89,8 +89,11 @@
 <div id="map-modal" style="display:none;">
   <div class="modal-content" style="position: absolute; top: 40px; right: 40px; margin: 0;">
     <div class="modal-header">
-      <h3 id="map-modal-title">Localizzazione immagini</h3>
-      <button class="modal-close" onclick="closeMapModal()">&times;</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+        <span id="map-layer-name" style="font-size:18px; font-weight:bold;">OpenStreetMap</span>
+        <span id="map-coords" style="font-size:12px; color:#fff; margin-left:auto;"></span>
+        <button class="modal-close" onclick="closeMapModal()" style="margin-left:12px;">&times;</button>
+      </div>
     </div>
     <div class="modal-body" id="map-modal-body" style="min-height:300px;">
       <div id="map-container" style="width:100%;height:300px; position:relative; z-index:1;"></div>

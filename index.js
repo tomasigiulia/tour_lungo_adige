@@ -427,13 +427,53 @@
           var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
           var cartoLayer = L.tileLayer('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', { attribution: '© CartoDB' });
           var layers = [baseLayer, satelliteLayer, cartoLayer];
+          var layerNames = ["OpenStreetMap", "Satellite Esri", "CartoDB"];
           var currentLayer = 0;
           layers[currentLayer].addTo(map);
+          // Aggiorna nome layer
+          var layerNameEl = document.getElementById('map-layer-name');
+          if (layerNameEl) layerNameEl.textContent = layerNames[currentLayer];
           // Marker panorami
+          // Icona goccia classica SVG
+          function getMarkerIcon(isActive) {
+            return L.divIcon({
+              className: '',
+              html: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 3C10.477 3 6 7.477 6 13c0 7.5 9.5 15.5 9.5 15.5s9.5-8 9.5-15.5c0-5.523-4.477-10-10-10Z" fill="${isActive ? '#27ae60' : '#3498db'}" stroke="white" stroke-width="2"/>
+                <circle cx="16" cy="13" r="4" fill="white"/>
+              </svg>`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+              popupAnchor: [0, -32]
+            });
+          }
+
           var markers = coords.map(function(coord, i) {
-            var marker = L.marker([coord.lat, coord.lng]).addTo(map);
-            marker.bindPopup('Panorama ' + (i+1));
+            var isActive = (window._leafletMap && window._leafletMap._activeIndex === i) || i === 0;
+            var marker = L.marker([coord.lat, coord.lng], { icon: getMarkerIcon(isActive) }).addTo(map);
+            var panoName = (window.APP_DATA && window.APP_DATA.scenes && window.APP_DATA.scenes[i] && window.APP_DATA.scenes[i].name) ? window.APP_DATA.scenes[i].name : 'Panorama ' + (i+1);
+            marker.bindPopup(panoName);
+            marker.on('click', function() {
+              // Cambia la vista al panorama relativo
+              var el = document.querySelector('#sceneList .scene[data-id="' + window.APP_DATA.scenes[i].id + '"]');
+              if (el) el.click();
+              // Aggiorna marker attivo
+              markers.forEach(function(m, idx) {
+                m.setIcon(getMarkerIcon(idx === i));
+              });
+              map._activeIndex = i;
+            });
             return marker;
+          });
+
+          // Aggiorna marker attivo quando si cambia panorama dalla lista
+          document.querySelectorAll('#sceneList .scene').forEach(function(el, idx) {
+            el.addEventListener('click', function() {
+              markers.forEach(function(m, i) {
+                m.setIcon(getMarkerIcon(i === idx));
+              });
+              map._activeIndex = idx;
+            });
           });
 
           // Controllo custom: cambio layer
@@ -455,11 +495,34 @@
                 map.removeLayer(layers[currentLayer]);
                 currentLayer = (currentLayer + 1) % layers.length;
                 layers[currentLayer].addTo(map);
+                // Aggiorna nome layer
+                var layerNameEl = document.getElementById('map-layer-name');
+                if (layerNameEl) layerNameEl.textContent = layerNames[currentLayer];
                 L.DomEvent.stopPropagation(e);
               });
               return btn;
             }
           });
+                    // Aggiorna coordinate della vista
+                    var coordsEl = document.getElementById('map-coords');
+                    function updateCoords() {
+                      if (coordsEl && map) {
+                        var c = map.getCenter();
+                        // Trova il panorama più vicino al centro
+                        var minDist = Infinity, panoName = '';
+                        coords.forEach(function(coord, i) {
+                          var dist = Math.sqrt(Math.pow(coord.lat - c.lat, 2) + Math.pow(coord.lng - c.lng, 2));
+                          if (dist < minDist) {
+                            minDist = dist;
+                            panoName = (window.APP_DATA && window.APP_DATA.scenes && window.APP_DATA.scenes[i] && window.APP_DATA.scenes[i].name) ? window.APP_DATA.scenes[i].name : 'Panorama ' + (i+1);
+                          }
+                        });
+                        coordsEl.textContent = panoName + ': ' + c.lat.toFixed(5) + ', ' + c.lng.toFixed(5);
+                      }
+                    }
+                    map.on('move', updateCoords);
+                    map.on('zoom', updateCoords);
+                    updateCoords();
           map.addControl(new LayerControl());
 
           // Controllo custom: centra panorami
