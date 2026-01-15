@@ -23,7 +23,7 @@
 
   // Grab elements from DOM.
   var panoElement = document.querySelector('#pano');
-  var sceneNameElement = document.querySelector('#titleBar .sceneName');
+  var sceneNameElement = document.querySelector('#topBar .sceneName') || document.querySelector('#titleBar .sceneName');
   var sceneListElement = document.querySelector('#sceneList');
   var sceneElements = document.querySelectorAll('#sceneList .scene');
   var sceneListToggleElement = document.querySelector('#sceneListToggle');

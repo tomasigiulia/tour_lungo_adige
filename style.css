@@ -95,6 +95,49 @@ body.multiple-scenes.mobile #titleBar {
   line-height: 40px;
 }
 
+/* New top bar: unified, responsive, prevents gaps between icons */
+#topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(58,68,84,0.95);
+  z-index: 9999;
+  padding: 0 8px;
+}
+#topBar-left, #topBar-center, #topBar-right {
+  display: flex;
+  align-items: center;
+}
+#topBar-center { flex: 1; justify-content: center; }
+#topBar-right { gap: 6px; }
+
+/* Reset absolute positioning for the individual controls so layout uses flex */
+#mapToggle, #fullscreenToggle, #autorotateToggle, #languageToggle, #sceneListToggle {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  width: 40px;
+  height: 40px;
+  margin: 0 4px;
+  padding: 6px;
+  background: transparent;
+}
+
+/* Push the panorama content under the fixed top bar */
+#pano {
+  top: 48px;
+  height: calc(100% - 48px);
+}
+
+/* Nascondi il vecchio titleBar perché ora usiamo #topBar */
+#titleBar { display: none !important; }
+
 #fullscreenToggle {
   display: none;
   position: absolute;
