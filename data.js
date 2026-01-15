@@ -40,7 +40,21 @@ var APP_DATA = {
           "target": "1-panorama2"
         }
       ],
-      "infoHotspots": []
+      "infoHotspots": [
+        {
+          "yaw": -0.4128,
+          "pitch": 0.4340,
+          "title": {
+            "it": "Sicyos angulatus",
+            "en": "Sicyos angulatus"
+          },
+          "text": {
+            "it": "Pianta annuale erbacea, rampicante. Possiede dei fusti lianosi mediamente lunghi a maturità tra i 2 e i 5 metri, ma che quando la pianta si trova in condizioni ambientali ottimali possono anche diventare più lunghi. Grazie a cirri ramosi questi possono aggrapparsi ad altre piante o sostegni di diverso tipo.",
+            "en": "Annual herbaceous climbing plant. It has vine-like stems that are typically 2 to 5 meters long at maturity, but can grow even longer when the plant is in optimal environmental conditions. Thanks to branched tendrils, these can cling to other plants or various types of supports."
+          },
+          "image": "hotspots/01_01Sicyos_angulatus.jpg"
+        }
+      ]
     },
     {
       "id": "1-panorama2",

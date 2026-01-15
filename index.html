@@ -34,6 +34,10 @@
   <h1 class="sceneName"></h1>
 </div>
 
+<a href="javascript:void(0)" id="languageToggle" title="IT/EN">
+  <span class="lang-text">IT</span>
+</a>
+
 <a href="javascript:void(0)" id="autorotateToggle">
   <img class="icon off" src="img/play.png">
   <img class="icon on" src="img/pause.png">
@@ -68,10 +72,22 @@
   <img class="icon" src="img/minus.png">
 </a>
 
+<!-- Finestra modale per hotspot -->
+<div id="custom-hotspot-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" onclick="closeCustomModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
 <script src="vendor/screenfull.min.js" ></script>
 <script src="vendor/bowser.min.js" ></script>
 <script src="vendor/marzipano.js" ></script>
 
+<script src="translations.js"></script>
 <script src="data.js"></script>
 <script src="index.js"></script>
 

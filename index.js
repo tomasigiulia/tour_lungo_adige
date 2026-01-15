@@ -29,6 +29,22 @@
   var sceneListToggleElement = document.querySelector('#sceneListToggle');
   var autorotateToggleElement = document.querySelector('#autorotateToggle');
   var fullscreenToggleElement = document.querySelector('#fullscreenToggle');
+  var languageToggleElement = document.querySelector('#languageToggle');
+
+  // Language toggle handler
+  if (languageToggleElement) {
+    languageToggleElement.addEventListener('click', function() {
+      // Cambia lingua
+      currentLanguage = currentLanguage === 'it' ? 'en' : 'it';
+      setLanguage(currentLanguage);
+      
+      // Aggiorna il testo del pulsante
+      var langText = languageToggleElement.querySelector('.lang-text');
+      if (langText) {
+        langText.textContent = currentLanguage.toUpperCase();
+      }
+    });
+  }
 
   // Detect desktop or mobile mode.
   if (window.matchMedia) {
@@ -285,77 +301,89 @@
   }
 
   function createInfoHotspotElement(hotspot) {
-
-    // Create wrapper element to hold icon and tooltip.
+    // Crea hotspot personalizzato con cerchio blu
     var wrapper = document.createElement('div');
-    wrapper.classList.add('hotspot');
-    wrapper.classList.add('info-hotspot');
+    wrapper.classList.add('custom-info-hotspot');
 
-    // Create hotspot/tooltip header.
-    var header = document.createElement('div');
-    header.classList.add('info-hotspot-header');
+    var circle = document.createElement('div');
+    circle.classList.add('hotspot-circle');
 
-    // Create image element.
-    var iconWrapper = document.createElement('div');
-    iconWrapper.classList.add('info-hotspot-icon-wrapper');
-    var icon = document.createElement('img');
-    icon.src = 'img/info.png';
-    icon.classList.add('info-hotspot-icon');
-    iconWrapper.appendChild(icon);
+    var icon = document.createElement('div');
+    icon.classList.add('hotspot-icon');
+    icon.innerHTML = '+';
 
-    // Create title element.
-    var titleWrapper = document.createElement('div');
-    titleWrapper.classList.add('info-hotspot-title-wrapper');
-    var title = document.createElement('div');
-    title.classList.add('info-hotspot-title');
-    title.innerHTML = hotspot.title;
-    titleWrapper.appendChild(title);
+    circle.appendChild(icon);
+    wrapper.appendChild(circle);
 
-    // Create close element.
-    var closeWrapper = document.createElement('div');
-    closeWrapper.classList.add('info-hotspot-close-wrapper');
-    var closeIcon = document.createElement('img');
-    closeIcon.src = 'img/close.png';
-    closeIcon.classList.add('info-hotspot-close-icon');
-    closeWrapper.appendChild(closeIcon);
+    // Click handler per aprire la modale
+    wrapper.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openCustomModal(hotspot);
+    });
 
-    // Construct header element.
-    header.appendChild(iconWrapper);
-    header.appendChild(titleWrapper);
-    header.appendChild(closeWrapper);
-
-    // Create text element.
-    var text = document.createElement('div');
-    text.classList.add('info-hotspot-text');
-    text.innerHTML = hotspot.text;
-
-    // Place header and text into wrapper element.
-    wrapper.appendChild(header);
-    wrapper.appendChild(text);
-
-    // Create a modal for the hotspot content to appear on mobile mode.
-    var modal = document.createElement('div');
-    modal.innerHTML = wrapper.innerHTML;
-    modal.classList.add('info-hotspot-modal');
-    document.body.appendChild(modal);
-
-    var toggle = function() {
-      wrapper.classList.toggle('visible');
-      modal.classList.toggle('visible');
-    };
-
-    // Show content when hotspot is clicked.
-    wrapper.querySelector('.info-hotspot-header').addEventListener('click', toggle);
-
-    // Hide content when close icon is clicked.
-    modal.querySelector('.info-hotspot-close-wrapper').addEventListener('click', toggle);
-
-    // Prevent touch and scroll events from reaching the parent element.
-    // This prevents the view control logic from interfering with the hotspot.
+    // Previeni eventi di propagazione
     stopTouchAndScrollEventPropagation(wrapper);
 
     return wrapper;
   }
+
+  // Funzione per aprire la modale personalizzata
+  function openCustomModal(hotspot) {
+    var modal = document.getElementById('custom-hotspot-modal');
+    var modalTitle = document.getElementById('modal-title');
+    var modalBody = document.getElementById('modal-body');
+
+    if (!modal || !modalTitle || !modalBody) return;
+
+    // Ottieni testo nella lingua corrente
+    var title = getBilingualText(hotspot.title);
+    var text = getBilingualText(hotspot.text);
+
+    // Imposta il contenuto
+    modalTitle.textContent = title;
+
+    // Costruisci il body con immagine e testo
+    var bodyContent = '';
+    if (hotspot.image) {
+      bodyContent += '<img src="' + hotspot.image + '" alt="' + title + '" onerror="this.style.display=\'none\'">';
+    }
+    bodyContent += '<p>' + text + '</p>';
+
+    modalBody.innerHTML = bodyContent;
+
+    // Mostra la modale
+    modal.classList.add('visible');
+
+    // Ferma autorotazione quando la modale è aperta
+    stopAutorotate();
+  }
+
+  // Funzione per chiudere la modale (disponibile globalmente)
+  window.closeCustomModal = function() {
+    var modal = document.getElementById('custom-hotspot-modal');
+    if (modal) {
+      modal.classList.remove('visible');
+      // Riprendi autorotazione se era abilitata
+      if (autorotateToggleElement.classList.contains('enabled')) {
+        startAutorotate();
+      }
+    }
+  };
+
+  // Chiudi modale cliccando fuori
+  document.addEventListener('click', function(e) {
+    var modal = document.getElementById('custom-hotspot-modal');
+    if (modal && e.target === modal) {
+      closeCustomModal();
+    }
+  });
+
+  // Chiudi modale con tasto ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      closeCustomModal();
+    }
+  });
 
   // Prevent touch and scroll events from reaching the parent element.
   function stopTouchAndScrollEventPropagation(element, eventList) {
