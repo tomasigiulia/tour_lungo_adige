@@ -1,10 +1,4 @@
 var APP_DATA = {
-  // Coordinate GPS estratte da EXIF metadati delle immagini originali
-  "coordinates": [
-    { "lat": 45.2213333333333, "lng": 11.2943416666667 },    // Panorama 1
-    { "lat": 45.2208555555556, "lng": 11.2942472222222 },    // Panorama 2
-    { "lat": 45.1443555555556, "lng": 12.300925 }            // Panorama 3
-  ],
   "scenes": [
     {
       "id": "0-panorama1",
@@ -46,15 +40,7 @@ var APP_DATA = {
           "target": "1-panorama2"
         }
       ],
-      "infoHotspots": [
-        {
-          "yaw": -0.4128,
-          "pitch": 0.4340,
-          "title": "Sicyos angulatus",
-          "text": "Pianta annuale erbacea, rampicante. Possiede dei fusti lianosi mediamente lunghi a maturità tra i 2 e i 5 metri, ma che quando la pianta si trova in condizioni ambientali ottimali possono anche diventare più lunghi. Grazie a cirri ramosi questi possono aggrapparsi ad altre piante o sostegni di diverso tipo.",
-          "image": "hotspots/Sicyos_angulatus.jpg"
-        }
-      ]
+      "infoHotspots": []
     },
     {
       "id": "1-panorama2",
