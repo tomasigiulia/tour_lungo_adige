@@ -301,22 +301,40 @@
   }
 
   function createInfoHotspotElement(hotspot) {
-    // Crea hotspot personalizzato con cerchio blu
+    // Crea hotspot con design originale (icona info grigia)
     var wrapper = document.createElement('div');
-    wrapper.classList.add('custom-info-hotspot');
+    wrapper.classList.add('hotspot');
+    wrapper.classList.add('info-hotspot');
 
-    var circle = document.createElement('div');
-    circle.classList.add('hotspot-circle');
+    // Create hotspot/tooltip header.
+    var header = document.createElement('div');
+    header.classList.add('info-hotspot-header');
 
-    var icon = document.createElement('div');
-    icon.classList.add('hotspot-icon');
-    icon.innerHTML = '+';
+    // Create image element.
+    var iconWrapper = document.createElement('div');
+    iconWrapper.classList.add('info-hotspot-icon-wrapper');
+    var icon = document.createElement('img');
+    icon.src = 'img/info.png';
+    icon.classList.add('info-hotspot-icon');
+    iconWrapper.appendChild(icon);
 
-    circle.appendChild(icon);
-    wrapper.appendChild(circle);
+    // Create title element.
+    var titleWrapper = document.createElement('div');
+    titleWrapper.classList.add('info-hotspot-title-wrapper');
+    var title = document.createElement('div');
+    title.classList.add('info-hotspot-title');
+    title.innerHTML = getBilingualText(hotspot.title);
+    titleWrapper.appendChild(title);
 
-    // Click handler per aprire la modale
-    wrapper.addEventListener('click', function(e) {
+    // Construct header element.
+    header.appendChild(iconWrapper);
+    header.appendChild(titleWrapper);
+
+    // Place header into wrapper element.
+    wrapper.appendChild(header);
+
+    // Click handler per aprire la modale personalizzata
+    header.addEventListener('click', function(e) {
       e.stopPropagation();
       openCustomModal(hotspot);
     });
