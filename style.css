@@ -1082,3 +1082,32 @@ body.view-control-buttons .viewControlButton {
   }
 }
 
+#mapToggle {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 50px;
+  width: 40px;
+  height: 40px;
+  background-color: rgb(103,115,131);
+  background-color: rgba(103,115,131,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+#mapToggle:hover {
+  background-color: rgba(78,88,104,1);
+  transform: scale(1.05);
+}
+.mobile #mapToggle {
+  width: 50px;
+  height: 50px;
+}
+#mapToggle .icon {
+  width: 28px;
+  height: 28px;
+  filter: grayscale(1);
+}
+

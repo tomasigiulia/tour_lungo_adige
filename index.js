@@ -30,6 +30,7 @@
   var autorotateToggleElement = document.querySelector('#autorotateToggle');
   var fullscreenToggleElement = document.querySelector('#fullscreenToggle');
   var languageToggleElement = document.querySelector('#languageToggle');
+  var mapToggleElement = document.getElementById('mapToggle');
 
   // Language toggle handler
   if (languageToggleElement) {
@@ -399,6 +400,30 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' || e.keyCode === 27) {
       closeCustomModal();
+    }
+  });
+
+  // Logica per aprire/chiudere la modale mappa
+  if (mapToggleElement) {
+    mapToggleElement.addEventListener('click', function() {
+      var modal = document.getElementById('map-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+      // Qui puoi integrare una mappa (Leaflet, Google Maps, ecc.)
+      // Esempio: document.getElementById('map-container').innerHTML = '<div>Qui la mappa</div>';
+    });
+  }
+  window.closeMapModal = function() {
+    var modal = document.getElementById('map-modal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  };
+  // Chiudi modale mappa con ESC
+  window.addEventListener('keydown', function(e) {
+    if ((e.key === 'Escape' || e.keyCode === 27)) {
+      closeMapModal();
     }
   });
 
