@@ -74,14 +74,49 @@
   });
 
   // Switch Scene Function
+  function openMapModal() {
+    var modal = document.getElementById('map-modal');
+    modal.style.display = 'flex';
+    setTimeout(function() { modal.classList.add('visible'); }, 10);
+    if (!mapMap) {
+      initMap().then(function() {
+        var currentSceneId = scenes[0].data.id;
+        try {
+          if (viewer && typeof viewer.scene === 'function') {
+            var active = viewer.scene();
+            for (var si = 0; si < scenes.length; si++) {
+              if (scenes[si].scene === active) { currentSceneId = scenes[si].data.id; break; }
+            }
+          }
+        } catch(e) {}
+        updateMapMarker(currentSceneId);
+        try { setupMapControls(); } catch(e) {}
+      });
+    } else {
+      setTimeout(function(){ mapMap.invalidateSize(); }, 200);
+    }
+  }
+
+  function closeMapModalWithHint() {
+    var modal = document.getElementById('map-modal');
+    modal.classList.remove('visible');
+    setTimeout(function() { modal.style.display = 'none'; }, 300);
+    // Anima il tasto mappa per suggerire dove cliccare
+    var mapToggle = document.getElementById('mapToggle');
+    if(mapToggle) {
+      mapToggle.classList.add('hint-anim');
+      setTimeout(function(){ mapToggle.classList.remove('hint-anim'); }, 1200);
+    }
+  }
+
   function switchScene(scene) {
     stopAutorotate();
     scene.view.setParameters(scene.data.initialViewParameters);
     scene.scene.switchTo();
     startAutorotate();
-    
     updateUI(scene);
     updateMapMarker(scene.data.id);
+    openMapModal(); // Apri la mappa ad ogni cambio panorama
   }
 
   function updateUI(scene) {
@@ -452,38 +487,46 @@
 
   // Map Toggle Handler
   if (mapToggle) {
-    mapToggle.addEventListener('click', function() {
-      var modal = document.getElementById('map-modal');
-      modal.style.display = 'flex';
-      setTimeout(function() { modal.classList.add('visible'); }, 10);
-      
-      // Init Map se necessario, o refresh size
-      if (!mapMap) {
-        initMap().then(function() {
-          // Aggiorna marker corrente alla prima apertura
-          var currentSceneId = scenes[0].data.id;
-          try {
-            if (viewer && typeof viewer.scene === 'function') {
-              var active = viewer.scene();
-              for (var si = 0; si < scenes.length; si++) {
-                if (scenes[si].scene === active) { currentSceneId = scenes[si].data.id; break; }
-              }
-            }
-          } catch(e) {}
-          updateMapMarker(currentSceneId);
-          // Setup floating controls once map is ready
-          try { setupMapControls(); } catch(e) {}
-        });
-      } else {
-        setTimeout(function(){ mapMap.invalidateSize(); }, 200);
-      }
+    mapToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openMapModal();
     });
   }
 
-  window.closeMapModal = function() {
+  // Chiudi la mappa al primo click su altri controlli
+  function setupAutoCloseMapModal() {
     var modal = document.getElementById('map-modal');
-    modal.classList.remove('visible');
-    setTimeout(function() { modal.style.display = 'none'; }, 300);
+    function handler(e) {
+      if (!modal.classList.contains('visible')) return;
+      // Se il click non è dentro la mappa o sui controlli mappa
+      if (!modal.contains(e.target) && e.target.id !== 'mapToggle') {
+        closeMapModalWithHint();
+        document.removeEventListener('mousedown', handler, true);
+      }
+      // Se clicco su un controllo esterno, chiudi
+      if (e.target.closest && !e.target.closest('.modal-content') && e.target.id !== 'mapToggle') {
+        closeMapModalWithHint();
+        document.removeEventListener('mousedown', handler, true);
+      }
+    }
+    document.addEventListener('mousedown', handler, true);
+  }
+
+  // Apri la mappa all'avvio
+  window.addEventListener('DOMContentLoaded', function() {
+    openMapModal();
+    setupAutoCloseMapModal();
+  });
+
+  // Apri la mappa ad ogni cambio panorama e chiudi al primo click fuori
+  var origSwitchScene = switchScene;
+  switchScene = function(scene) {
+    origSwitchScene(scene);
+    setupAutoCloseMapModal();
+  };
+
+  window.closeMapModal = function() {
+    closeMapModalWithHint();
   };
 
   // --- HOTSPOT CREATION ---

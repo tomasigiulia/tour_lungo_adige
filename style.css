@@ -1,3 +1,12 @@
+a#mapToggle.hint-anim {
+  animation: mapHintPulse 1.2s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 0 0 #1a2636cc, 0 0 0 8px #1a263688;
+}
+@keyframes mapHintPulse {
+  0% { box-shadow: 0 0 0 0 #1a2636cc, 0 0 0 0 #1a263688; }
+  60% { box-shadow: 0 0 0 8px #1a2636cc, 0 0 0 16px #1a263644; }
+  100% { box-shadow: 0 0 0 0 #1a263600, 0 0 0 0 #1a263600; }
+}
 /* Tooltip personalizzato per marker mappa */
 .custom-marker-tooltip.leaflet-tooltip {
   background: rgba(30, 35, 40, 0.85);
