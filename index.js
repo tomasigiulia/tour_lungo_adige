@@ -636,10 +636,25 @@
 
   // Language Toggle
   if (languageToggle) {
-    languageToggle.addEventListener('click', function() {
-      var currentLang = localStorage.getItem('tourLanguage') === 'en' ? 'it' : 'en';
-      setLanguage(currentLang);
-      languageToggle.querySelector('.lang-text').textContent = currentLang.toUpperCase();
+    function updateLangSwitchUI() {
+      var lang = localStorage.getItem('tourLanguage') || 'it';
+      var it = languageToggle.querySelector('.lang-it');
+      var en = languageToggle.querySelector('.lang-en');
+      languageToggle.classList.remove('it', 'en');
+      languageToggle.classList.add(lang);
+      if (lang === 'it') {
+        it.classList.add('active');
+        en.classList.remove('active');
+      } else {
+        en.classList.add('active');
+        it.classList.remove('active');
+      }
+    }
+    languageToggle.addEventListener('click', function(e) {
+      var lang = localStorage.getItem('tourLanguage') || 'it';
+      var newLang = lang === 'en' ? 'it' : 'en';
+      setLanguage(newLang);
+      updateLangSwitchUI();
       // Aggiorna titolo scena corrente
       var currentSceneName = null;
       try {
@@ -650,8 +665,10 @@
           }
         }
       } catch(e) {}
-      if (currentSceneName) sceneNameElement.textContent = currentSceneName; // In un'app reale il nome dovrebbe venire da translations
+      if (currentSceneName) sceneNameElement.textContent = currentSceneName;
     });
+    // Inizializza lo stato visivo
+    updateLangSwitchUI();
   }
 
   // --- NAVIGATION CONTROLS LOGIC ---
