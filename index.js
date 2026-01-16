@@ -319,7 +319,10 @@
       console.table(diagnostics);
       console.groupEnd();
 
+
       mapMap = L.map('map-container').setView([coords[0].lat, coords[0].lng], 16);
+      // Aggiungi barra di scala
+      L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mapMap);
 
       // Define base layers
       baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
