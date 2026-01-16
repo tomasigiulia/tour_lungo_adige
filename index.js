@@ -136,7 +136,7 @@
         // Check SOI
         if (view.getUint16(0) !== 0xFFD8) return null;
         var offset = 2;
-        var length = view.byteLength;
+       
         while (offset < length) {
           var marker = view.getUint16(offset);
           if (marker === 0xFFD9) break; // EOI
@@ -360,9 +360,13 @@
           switchScene(scenes[i]);
           closeMapModal();
         });
-        // Attach popup with coordinates
+        // Attach popup with coordinates (mostra su hover)
         if (c && typeof c.lat === 'number' && typeof c.lng === 'number') {
-          marker.bindPopup('<b>' + scenes[i].data.name + '</b><br/>' + c.lat.toFixed(6) + ', ' + c.lng.toFixed(6));
+          var popupContent = '<div style="font-size:13px;line-height:1.4;padding:4px 8px;">'
+            + '<b>' + scenes[i].data.name + '</b><br>'
+            + c.lat.toFixed(6) + ', ' + c.lng.toFixed(6)
+            + '</div>';
+          marker.bindTooltip(popupContent, {direction:'top',offset:[0,-8],opacity:0.95,className:'custom-marker-tooltip'});
         }
         marker._sceneId = scenes[i].data.id;
         mapMarkers.push({ marker: marker, id: scenes[i].data.id });
@@ -421,6 +425,7 @@
 
   function updateMapMarker(sceneId) {
     if (!mapMap) return;
+    var coordsText = '';
     mapMarkers.forEach(function(obj) {
       var isActive = (obj.id === sceneId);
       // Ricrea icona basandosi sullo stato attivo
@@ -429,17 +434,17 @@
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${color}" stroke="white" stroke-width="2"/>
                 <circle cx="12" cy="9" r="2.5" fill="white"/>
                </svg>`;
-      
       var icon = L.divIcon({ className: '', html: html, iconSize:[30,30], iconAnchor:[15,30] });
       obj.marker.setIcon(icon);
-      
       if(isActive) {
-        // Pan and zoom to active marker, open popup with coordinates
         var latlng = obj.marker.getLatLng();
+        coordsText = latlng.lat.toFixed(6) + ', ' + latlng.lng.toFixed(6);
         try { mapMap.setView(latlng, Math.max(mapMap.getZoom(), 16), { animate: true }); } catch(e) {}
         try { obj.marker.openPopup(); } catch(e) {}
       }
     });
+    var coordsEl = document.getElementById('map-coords');
+    if (coordsEl) coordsEl.textContent = coordsText;
   }
 
   // Map Toggle Handler

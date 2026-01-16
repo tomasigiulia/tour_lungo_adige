@@ -1,3 +1,13 @@
+/* Forza allineamento a sinistra delle coordinate nella barra della mappa */
+#map-coords {
+  text-align: right !important;
+  display: inline-block;
+  min-width: 120px;
+  margin-left: 12px;
+  color: #fff;
+  font-size: 13px;
+  vertical-align: middle;
+}
 /* RESET & BASIC */
 * {
   box-sizing: border-box;
@@ -324,16 +334,17 @@ a { color: inherit; text-decoration: none; }
 .info-content { width: 90%; max-width: 600px; max-height: 80%; }
 
 .modal-header {
-  padding: 15px 20px;
-  background: #2b313a;
+  padding: 6px 12px;
+  background: #23272e;
   display: flex; justify-content: space-between; align-items: center;
   border-bottom: 1px solid #333;
+  min-height: 32px;
 }
 
-.modal-header h3, .modal-header span { margin: 0; font-size: 18px; font-weight: 500; }
+.modal-header h3, .modal-header span { margin: 0; font-size: 15px; font-weight: 500; }
 
 .modal-close {
-  background: none; border: none; color: #fff; font-size: 28px;
+  background: none; border: none; color: #fff; font-size: 22px;
   cursor: pointer; line-height: 1;
 }
 
