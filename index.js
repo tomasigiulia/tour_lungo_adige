@@ -366,7 +366,7 @@
             + '<b>' + scenes[i].data.name + '</b><br>'
             + c.lat.toFixed(6) + ', ' + c.lng.toFixed(6)
             + '</div>';
-          marker.bindTooltip(popupContent, {direction:'top',offset:[0,-8],opacity:0.95,className:'custom-marker-tooltip'});
+          marker.bindTooltip(popupContent, {direction:'top',offset:[0,-32],opacity:0.95,className:'custom-marker-tooltip'});
         }
         marker._sceneId = scenes[i].data.id;
         mapMarkers.push({ marker: marker, id: scenes[i].data.id });
