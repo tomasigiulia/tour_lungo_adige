@@ -1,117 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-<title>Project Title</title>
+<title>Virtual Tour</title>
 <meta charset="utf-8">
-<meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <style> @-ms-viewport { width: device-width; } </style>
 <link rel="stylesheet" href="vendor/reset.min.css">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-<body class="multiple-scenes view-control-buttons">
+<body>
 
 <div id="pano"></div>
 
-<div id="sceneList">
-  <ul class="scenes">
-    
-      <a href="javascript:void(0)" class="scene" data-id="0-panorama1">
-        <li class="text">panorama1</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="1-panorama2">
-        <li class="text">panorama2</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="2-panorama3">
-        <li class="text">panorama3</li>
-      </a>
-    
-  </ul>
-</div>
-
-<div id="titleBar">
-  <h1 class="sceneName"></h1>
-</div>
-
-<!-- Top bar: raggruppo i pulsanti in un unico contenitore per evitare buchi e sovrapposizioni -->
-<div id="topBar">
-  <div id="topBar-left">
-    <a href="javascript:void(0)" id="sceneListToggle">
-      <img class="icon off" src="img/expand.png">
-      <img class="icon on" src="img/collapse.png">
-    </a>
-  </div>
-
-  <div id="topBar-center">
-    <h1 class="sceneName">panorama1</h1>
-  </div>
-
-  <div id="topBar-right">
-    <a href="javascript:void(0)" id="autorotateToggle">
-      <img class="icon off" src="img/play.png">
-      <img class="icon on" src="img/pause.png">
-    </a>
-    <a href="javascript:void(0)" id="languageToggle" title="IT/EN">
+<div id="topBar" class="glass-panel">
+  <div class="sceneName"></div>
+  <div class="top-controls">
+    <a href="javascript:void(0)" id="languageToggle" class="icon-btn" aria-label="Cambia Lingua">
       <span class="lang-text">IT</span>
     </a>
-    <a href="javascript:void(0)" id="mapToggle" title="Mappa">
-      <span class="icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 17L10 14L14 17L20 14V7L14 10L10 7L4 10V17Z" stroke="#888" stroke-width="2" fill="#e0e0e0"/>
-          <path d="M4 10L10 13L14 10L20 13" stroke="#888" stroke-width="2"/>
-          <path d="M10 13V7" stroke="#888" stroke-width="2"/>
-          <path d="M14 10V17" stroke="#888" stroke-width="2"/>
-        </svg>
-      </span>
-    </a>
-    <a href="javascript:void(0)" id="fullscreenToggle">
-      <img class="icon off" src="img/fullscreen.png">
-      <img class="icon on" src="img/windowed.png">
-    </a>
   </div>
 </div>
 
-<a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
-  <img class="icon" src="img/up.png">
-</a>
-<a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
-  <img class="icon" src="img/down.png">
-</a>
-<a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
-  <img class="icon" src="img/left.png">
-</a>
-<a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
-  <img class="icon" src="img/right.png">
-</a>
-<a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
-  <img class="icon" src="img/plus.png">
-</a>
-<a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
-  <img class="icon" src="img/minus.png">
-</a>
+<div id="rightBar">
+  <a href="javascript:void(0)" id="mapToggle" class="glass-btn" title="Mappa">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.447 2.724A1 1 0 012 21.832V4.168a1 1 0 011.382-.894L9 6m0 14L22 4m-13 2L3.382 3.276A1 1 0 002 4.168v17.664a1 1 0 001.382.894L9 20m0-14l6-3 5.618 2.809A1 1 0 0122 6.664v17.664a1 1 0 01-1.382.894L15 22m0-16l6-3m-6 3v16"/></svg>
+  </a>
+  
+  <a href="javascript:void(0)" id="autorotateToggle" class="glass-btn" title="Autorotazione">
+    <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+  </a>
 
-<!-- Modale mappa localizzazione immagini -->
-<div id="map-modal" style="display:none;">
-  <div class="modal-content" style="position: absolute; top: 40px; right: 40px; margin: 0;">
-    <div class="modal-header">
-      <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-        <span id="map-layer-name" style="font-size:18px; font-weight:bold;">OpenStreetMap</span>
-        <span id="map-coords" style="font-size:12px; color:#fff; margin-left:auto;"></span>
-        <button class="modal-close" onclick="closeMapModal()" style="margin-left:12px;">&times;</button>
+  <a href="javascript:void(0)" id="fullscreenToggle" class="glass-btn" title="Schermo Intero">
+    <svg class="icon-fs-on" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    <svg class="icon-fs-off" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+  </a>
+</div>
+
+<div id="bottomBar" class="glass-panel">
+  
+  <div id="bottomBarToggle" class="toggle-btn" title="Mostra/Nascondi">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </div>
+
+  <div id="barControls">
+    <div class="control-group">
+      <div class="nav-btn" id="viewLeft" title="Sinistra">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="nav-btn" id="viewUp" title="Su">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+      </div>
+      <div class="nav-btn" id="viewDown" title="Giù">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="nav-btn" id="viewRight" title="Destra">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
       </div>
     </div>
-    <div class="modal-body" id="map-modal-body" style="min-height:300px;">
-      <div id="map-container" style="width:100%;height:300px; position:relative; z-index:1;"></div>
+
+    <div class="divider"></div>
+
+    <div class="control-group">
+      <div class="nav-btn" id="viewOut" title="Zoom Out">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-opacity="0.7"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      </div>
+      <div class="nav-btn" id="viewIn" title="Zoom In">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-opacity="0.7"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="thumb-scroll prev" id="thumbPrev" title="Panorama precedente">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+  </div>
+
+  <div class="thumb-scroll next" id="thumbNext" title="Panorama successivo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+  </div>
+
+  <div id="thumbsContainer">
+    <ul id="thumbs" class="thumbs">
+      </ul>
+  </div>
+</div>
+
+<div id="map-modal" class="custom-modal" style="display:none;">
+  <div class="modal-content map-content">
+    <div class="modal-header">
+      <span id="map-layer-name">Mappa</span>
+      <button class="modal-close" onclick="closeMapModal()">&times;</button>
+    </div>
+    <div class="modal-body-map">
+      <div id="map-container"></div>
+      <!-- Floating map controls: solo cambio layer e mostra tutti -->
+      <div id="map-controls-floating" class="map-controls-floating">
+        <div class="map-controls-stack">
+          <button id="map-controls-cycle" class="map-controls-cycle" title="Cambia layer">
+            <span class="map-btn-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 22 7 12 12 2 7 12 2" fill="rgba(52,152,219,0.18)"/>
+                <polygon points="12 12 22 17 12 22 2 17 12 12" fill="rgba(52,152,219,0.32)"/>
+                <line x1="2" y1="7" x2="12" y2="12" />
+                <line x1="12" y1="12" x2="22" y2="7" />
+                <line x1="2" y1="17" x2="12" y2="22" />
+                <line x1="12" y1="22" x2="22" y2="17" />
+              </svg>
+            </span>
+          </button>
+          <button id="map-controls-fit" class="map-controls-fit" title="Mostra tutti">
+            <span class="map-btn-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="4" fill="rgba(52,152,219,0.18)"/>
+                <polyline points="4,10 4,4 10,4" />
+                <polyline points="14,4 20,4 20,10" />
+                <polyline points="20,14 20,20 14,20" />
+                <polyline points="10,20 4,20 4,14" />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Finestra modale per hotspot -->
-<div id="custom-hotspot-modal">
-  <div class="modal-content">
+<div id="custom-hotspot-modal" class="custom-modal">
+  <div class="modal-content info-content">
     <div class="modal-header">
       <h3 id="modal-title"></h3>
       <button class="modal-close" onclick="closeCustomModal()">&times;</button>
@@ -123,6 +142,9 @@
 <script src="vendor/screenfull.min.js" ></script>
 <script src="vendor/bowser.min.js" ></script>
 <script src="vendor/marzipano.js" ></script>
+
+<!-- EXIF helper (used to read GPS from JPEGs if present) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
 
 <script src="translations.js"></script>
 <script src="data.js"></script>

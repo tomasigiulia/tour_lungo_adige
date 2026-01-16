@@ -1,93 +1,26 @@
-/*
- * Copyright 2016 Google Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 'use strict';
 
 (function() {
   var Marzipano = window.Marzipano;
-  var bowser = window.bowser;
   var screenfull = window.screenfull;
   var data = window.APP_DATA;
 
-  // Grab elements from DOM.
+  // DOM Elements
   var panoElement = document.querySelector('#pano');
-  var sceneNameElement = document.querySelector('#topBar .sceneName') || document.querySelector('#titleBar .sceneName');
-  var sceneListElement = document.querySelector('#sceneList');
-  var sceneElements = document.querySelectorAll('#sceneList .scene');
-  var sceneListToggleElement = document.querySelector('#sceneListToggle');
-  var autorotateToggleElement = document.querySelector('#autorotateToggle');
-  var fullscreenToggleElement = document.querySelector('#fullscreenToggle');
-  var languageToggleElement = document.querySelector('#languageToggle');
-  var mapToggleElement = document.getElementById('mapToggle');
+  var sceneNameElement = document.querySelector('.sceneName');
+  var autorotateToggle = document.querySelector('#autorotateToggle');
+  var fullscreenToggle = document.querySelector('#fullscreenToggle');
+  var languageToggle = document.querySelector('#languageToggle');
+  var mapToggle = document.querySelector('#mapToggle');
 
-  // Language toggle handler
-  if (languageToggleElement) {
-    languageToggleElement.addEventListener('click', function() {
-      // Cambia lingua
-      currentLanguage = currentLanguage === 'it' ? 'en' : 'it';
-      setLanguage(currentLanguage);
-      
-      // Aggiorna il testo del pulsante
-      var langText = languageToggleElement.querySelector('.lang-text');
-      if (langText) {
-        langText.textContent = currentLanguage.toUpperCase();
-      }
-    });
-  }
-
-  // Detect desktop or mobile mode.
-  if (window.matchMedia) {
-    var setMode = function() {
-      if (mql.matches) {
-        document.body.classList.remove('desktop');
-        document.body.classList.add('mobile');
-      } else {
-        document.body.classList.remove('mobile');
-        document.body.classList.add('desktop');
-      }
-    };
-    var mql = matchMedia("(max-width: 500px), (max-height: 500px)");
-    setMode();
-    mql.addListener(setMode);
-  } else {
-    document.body.classList.add('desktop');
-  }
-
-  // Detect whether we are on a touch device.
-  document.body.classList.add('no-touch');
-  window.addEventListener('touchstart', function() {
-    document.body.classList.remove('no-touch');
-    document.body.classList.add('touch');
-  });
-
-  // Use tooltip fallback mode on IE < 11.
-  if (bowser.msie && parseFloat(bowser.version) < 11) {
-    document.body.classList.add('tooltip-fallback');
-  }
-
-  // Viewer options.
+  // Viewer options
   var viewerOpts = {
-    controls: {
-      mouseViewMode: data.settings.mouseViewMode
-    }
+    controls: { mouseViewMode: data.settings.mouseViewMode }
   };
 
-  // Initialize viewer.
   var viewer = new Marzipano.Viewer(panoElement, viewerOpts);
-
-  // Create scenes.
+  
+  // --- SCENE CREATION ---
   var scenes = data.scenes.map(function(data) {
     var urlPrefix = "tiles";
     var source = Marzipano.ImageUrlSource.fromString(
@@ -105,500 +38,637 @@
       pinFirstLevel: true
     });
 
-    // Create link hotspots.
+    // Link Hotspots
     data.linkHotspots.forEach(function(hotspot) {
       var element = createLinkHotspotElement(hotspot);
       scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
     });
 
-    // Create info hotspots.
+    // Info Hotspots
     data.infoHotspots.forEach(function(hotspot) {
       var element = createInfoHotspotElement(hotspot);
       scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
     });
 
-    return {
-      data: data,
-      scene: scene,
-      view: view
-    };
+    return { data: data, scene: scene, view: view };
   });
 
-  // Set up autorotate, if enabled.
-  var autorotate = Marzipano.autorotate({
-    yawSpeed: 0.03,
-    targetPitch: 0,
-    targetFov: Math.PI/2
+  // --- UI LOGIC ---
+
+  // Build Thumbnails
+  var thumbsUl = document.getElementById('thumbs');
+  scenes.forEach(function(s, idx) {
+    var li = document.createElement('li');
+    li.className = 'thumb';
+    li.setAttribute('data-id', s.data.id);
+    
+    var img = document.createElement('img');
+    img.src = 'tiles/' + s.data.id + '/preview.jpg';
+    img.alt = s.data.name;
+    
+    li.appendChild(img);
+    li.addEventListener('click', function() {
+      switchScene(s);
+    });
+    thumbsUl.appendChild(li);
   });
-  if (data.settings.autorotateEnabled) {
-    autorotateToggleElement.classList.add('enabled');
+
+  // Switch Scene Function
+  function switchScene(scene) {
+    stopAutorotate();
+    scene.view.setParameters(scene.data.initialViewParameters);
+    scene.scene.switchTo();
+    startAutorotate();
+    
+    updateUI(scene);
+    updateMapMarker(scene.data.id);
   }
 
-  // Set handler for autorotate toggle.
-  autorotateToggleElement.addEventListener('click', toggleAutorotate);
+  function updateUI(scene) {
+    // Update Title
+    sceneNameElement.textContent = scene.data.name;
 
-  // Set up fullscreen mode, if supported.
-  if (screenfull.enabled && data.settings.fullscreenButton) {
-    document.body.classList.add('fullscreen-enabled');
-    fullscreenToggleElement.addEventListener('click', function() {
-      screenfull.toggle();
-    });
-    screenfull.on('change', function() {
-      if (screenfull.isFullscreen) {
-        fullscreenToggleElement.classList.add('enabled');
+    // Highlight Thumbnail
+    document.querySelectorAll('.thumb').forEach(function(el) {
+      if(el.getAttribute('data-id') === scene.data.id) {
+        el.classList.add('current');
+        el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       } else {
-        fullscreenToggleElement.classList.remove('enabled');
+        el.classList.remove('current');
       }
     });
-  } else {
-    document.body.classList.add('fullscreen-disabled');
+    // Add diagnostic class to increase gap so lifted thumb doesn't overlap neighbors
+    if (thumbsUl) {
+      if (document.querySelector('.thumb.current')) thumbsUl.classList.add('has-current');
+      else thumbsUl.classList.remove('has-current');
+    }
+
+    // Ensure thumbs container allows the lifted thumb to be visible by toggling expanded class
+    var thumbsContainerEl = document.getElementById('thumbsContainer');
+    if (thumbsContainerEl) {
+      if (document.querySelector('.thumb.current')) thumbsContainerEl.classList.add('expanded');
+      else thumbsContainerEl.classList.remove('expanded');
+    }
+    // Also toggle on the bottomBar so overflow is allowed at that level
+    var bottomBarEl = document.getElementById('bottomBar');
+    if (bottomBarEl) {
+      if (document.querySelector('.thumb.current')) bottomBarEl.classList.add('expanded');
+      else bottomBarEl.classList.remove('expanded');
+    }
   }
 
-  // Set handler for scene list toggle.
-  sceneListToggleElement.addEventListener('click', toggleSceneList);
+  // --- MAP LOGIC (LEAFLET) ---
+  var mapMap = null;
+  var mapMarkers = [];
+  var baseLayer, satelliteLayer, cartoLayer, layers = [];
+  var currentLayerIndex = 0;
+  function initMap() {
+    if (mapMap) return Promise.resolve(); // Già inizializzata
 
-  // Start with the scene list open on desktop.
-  if (!document.body.classList.contains('mobile')) {
-    showSceneList();
+    // Helper: parse EXIF GPS from JPEG ArrayBuffer (returns {lat,lng} or null)
+    function getImageGPS(url) {
+      return fetch(url).then(function(resp) {
+        if (!resp.ok) return null;
+        return resp.arrayBuffer();
+      }).then(function(buffer) {
+        if (!buffer) return null;
+        var view = new DataView(buffer);
+        // Check SOI
+        if (view.getUint16(0) !== 0xFFD8) return null;
+        var offset = 2;
+        var length = view.byteLength;
+        while (offset < length) {
+          var marker = view.getUint16(offset);
+          if (marker === 0xFFD9) break; // EOI
+          var size = view.getUint16(offset + 2);
+          // APP1 (Exif)
+          if (marker === 0xFFE1) {
+            var start = offset + 4; // start of APP1 payload
+            var exifHeader = '';
+            for (var i = 0; i < 6; i++) {
+              exifHeader += String.fromCharCode(view.getUint8(start + i));
+            }
+            if (exifHeader !== 'Exif\0\0') { offset += 2 + size; continue; }
+
+            var tiffOffset = start + 6;
+            var little = view.getUint16(tiffOffset) === 0x4949;
+            var getUint16 = function(off) { return view.getUint16(off, little); };
+            var getUint32 = function(off) { return view.getUint32(off, little); };
+
+            var firstIFDOffset = tiffOffset + getUint32(tiffOffset + 4);
+            var numEntries = getUint16(firstIFDOffset);
+            var gpsIFDPointer = null;
+            for (i = 0; i < numEntries; i++) {
+              var entryOff = firstIFDOffset + 2 + i * 12;
+              var tag = getUint16(entryOff);
+              var valueOffset = getUint32(entryOff + 8);
+              if (tag === 0x8825) { // GPSInfo tag
+                gpsIFDPointer = tiffOffset + valueOffset;
+                break;
+              }
+            }
+            if (!gpsIFDPointer) return null;
+
+            var numGpsEntries = getUint16(gpsIFDPointer);
+            var latRef, lonRef, lat, lon;
+            for (i = 0; i < numGpsEntries; i++) {
+              var eOff = gpsIFDPointer + 2 + i * 12;
+              var gTag = getUint16(eOff);
+              var gType = getUint16(eOff + 2);
+              var gCount = getUint32(eOff + 4);
+              var gValOff = getUint32(eOff + 8);
+              var actualOff = tiffOffset + gValOff;
+
+              if (gTag === 1) { // GPSLatitudeRef (ASCII)
+                latRef = '';
+                for (var k = 0; k < gCount; k++) latRef += String.fromCharCode(view.getUint8(actualOff + k));
+                latRef = latRef.replace(/\0/g, '');
+              } else if (gTag === 2) { // GPSLatitude (RATIONAL)
+                var dOff = actualOff;
+                var degNum = getUint32(dOff);
+                var degDen = getUint32(dOff + 4);
+                var minNum = getUint32(dOff + 8);
+                var minDen = getUint32(dOff + 12);
+                var secNum = getUint32(dOff + 16);
+                var secDen = getUint32(dOff + 20);
+                if (degDen && minDen && secDen) {
+                  var deg = degNum / degDen;
+                  var min = minNum / minDen;
+                  var sec = secNum / secDen;
+                  lat = deg + min / 60 + sec / 3600;
+                }
+              } else if (gTag === 3) { // GPSLongitudeRef
+                lonRef = '';
+                for (k = 0; k < gCount; k++) lonRef += String.fromCharCode(view.getUint8(actualOff + k));
+                lonRef = lonRef.replace(/\0/g, '');
+              } else if (gTag === 4) { // GPSLongitude
+                dOff = actualOff;
+                degNum = getUint32(dOff);
+                degDen = getUint32(dOff + 4);
+                minNum = getUint32(dOff + 8);
+                minDen = getUint32(dOff + 12);
+                secNum = getUint32(dOff + 16);
+                secDen = getUint32(dOff + 20);
+                if (degDen && minDen && secDen) {
+                  var ddeg = degNum / degDen;
+                  var dmin = minNum / minDen;
+                  var dsec = secNum / secDen;
+                  lon = ddeg + dmin / 60 + dsec / 3600;
+                }
+              }
+            }
+            if (lat !== undefined && lon !== undefined) {
+              if (latRef && latRef[0] === 'S') lat = -lat;
+              if (lonRef && lonRef[0] === 'W') lon = -lon;
+              return { lat: lat, lng: lon };
+            }
+          }
+          offset += 2 + size;
+        }
+        return null;
+      }).catch(function() { return null; });
+    }
+
+    // EXIF.js helper copied/adapted: convert GPS rationals to decimal degrees
+    function convertToDecimal(ref, deg, min, sec) {
+      var toNumber = function(v) {
+        // v may be a rational object {numerator, denominator} or a number
+        if (v && typeof v === 'object' && ('numerator' in v) && ('denominator' in v)) {
+          return v.numerator / v.denominator;
+        }
+        return Number(v) || 0;
+      };
+      var d = toNumber(deg);
+      var m = toNumber(min);
+      var s = toNumber(sec);
+      var val = d + (m / 60) + (s / 3600);
+      if (ref === 'S' || ref === 'W') val = -val;
+      return val;
+    }
+
+    // Attempt to read GPS using EXIF.js first (simpler API), fallback to getImageGPS DataView parser
+    function getGpsDataEXIF(url) {
+      return new Promise(function(resolve) {
+        if (!window.EXIF) { resolve(null); return; }
+        var img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = function() {
+          try {
+            EXIF.getData(img, function() {
+              var lat = EXIF.getTag(this, 'GPSLatitude');
+              var lon = EXIF.getTag(this, 'GPSLongitude');
+              var latRef = EXIF.getTag(this, 'GPSLatitudeRef');
+              var lonRef = EXIF.getTag(this, 'GPSLongitudeRef');
+              if (lat && lon) {
+                var la = convertToDecimal(latRef, lat[0], lat[1], lat[2]);
+                var lo = convertToDecimal(lonRef, lon[0], lon[1], lon[2]);
+                resolve({ lat: la, lng: lo });
+              } else {
+                resolve(null);
+              }
+            });
+          } catch (e) { resolve(null); }
+        };
+        img.onerror = function() { resolve(null); };
+        img.src = url;
+      });
+    }
+
+    // Build coords array from preview images; fall back to APP_DATA.coordinates or defaults
+    var appCoords = (window.APP_DATA && window.APP_DATA.coordinates) || null;
+    var promises = scenes.map(function(s, i) {
+      var url = 'tiles/' + s.data.id + '/preview.jpg';
+      return getGpsDataEXIF(url).then(function(gps) {
+        if (gps) return { coords: gps, source: 'exif' };
+        return getImageGPS(url).then(function(gps2) {
+          if (gps2) return { coords: gps2, source: 'dataview' };
+          if (appCoords && appCoords[i]) return { coords: appCoords[i], source: 'app_data' };
+          return { coords: null, source: 'fallback' };
+        });
+      });
+    });
+
+    return Promise.all(promises).then(function(results) {
+      var fallbackLat = 45.765, fallbackLng = 10.812;
+      // Build final coords list and record source for diagnostics
+      var diagnostics = results.map(function(r, i) {
+        var entry = { id: scenes[i].data.id, source: r && r.source ? r.source : 'unknown', lat: null, lng: null };
+        if (r && r.coords && typeof r.coords.lat === 'number' && typeof r.coords.lng === 'number') {
+          entry.lat = r.coords.lat; entry.lng = r.coords.lng;
+        } else if (appCoords && appCoords[i]) {
+          entry.source = 'app_data'; entry.lat = appCoords[i].lat; entry.lng = appCoords[i].lng;
+        } else {
+          entry.source = 'fallback'; entry.lat = fallbackLat + i * 0.0005; entry.lng = fallbackLng + i * 0.0005;
+        }
+        return entry;
+      });
+
+      // If APP_DATA.coordinates exists and length matches scenes, prefer it (explicit choice)
+      var useAppCoords = (appCoords && Array.isArray(appCoords) && appCoords.length >= scenes.length);
+      if (useAppCoords) {
+        console.warn('Using coordinates from APP_DATA.coordinates (present in data). Remove/replace if incorrect.');
+      }
+
+      var coords = diagnostics.map(function(d, i) {
+        if (useAppCoords) return { lat: appCoords[i].lat, lng: appCoords[i].lng };
+        return { lat: d.lat, lng: d.lng };
+      });
+
+      // Log diagnostics so user can inspect sources and values
+      console.group('Map coordinates diagnostics');
+      console.table(diagnostics);
+      console.groupEnd();
+
+      mapMap = L.map('map-container').setView([coords[0].lat, coords[0].lng], 16);
+
+      // Define base layers
+      baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      });
+      satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '© ESRI'
+      });
+      cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+        attribution: '© CARTO'
+      });
+
+      layers = [baseLayer, satelliteLayer, cartoLayer];
+      currentLayerIndex = 0;
+      layers[currentLayerIndex].addTo(mapMap);
+      var mapLayerNameEl = document.getElementById('map-layer-name');
+      if (mapLayerNameEl) mapLayerNameEl.textContent = (currentLayerIndex === 0 ? 'OSM' : currentLayerIndex === 1 ? 'Satellite' : 'Carto');
+
+      // Crea icone personalizzate
+      var createIcon = function(active) {
+        var color = active ? '#3498db' : '#555';
+        var scale = active ? 1.2 : 1;
+        return L.divIcon({
+          className: 'custom-map-marker',
+          html: '<svg viewBox="0 0 24 24" width="30" height="30" style="transform:scale(' + scale + '); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">' +
+                '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="' + color + '" stroke="white" stroke-width="2"/>' +
+                '<circle cx="12" cy="9" r="2.5" fill="white"/>' +
+               '</svg>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 30]
+        });
+      };
+
+      coords.forEach(function(c, i) {
+        if (i >= scenes.length) return;
+        var marker = L.marker([c.lat, c.lng], { icon: createIcon(i === 0) }).addTo(mapMap);
+        marker.on('click', function() {
+          switchScene(scenes[i]);
+          closeMapModal();
+        });
+        // Attach popup with coordinates
+        if (c && typeof c.lat === 'number' && typeof c.lng === 'number') {
+          marker.bindPopup('<b>' + scenes[i].data.name + '</b><br/>' + c.lat.toFixed(6) + ', ' + c.lng.toFixed(6));
+        }
+        marker._sceneId = scenes[i].data.id;
+        mapMarkers.push({ marker: marker, id: scenes[i].data.id });
+      });
+    });
   }
 
-  // Set handler for scene switch.
-  scenes.forEach(function(scene) {
-    var el = document.querySelector('#sceneList .scene[data-id="' + scene.data.id + '"]');
-    el.addEventListener('click', function() {
-      switchScene(scene);
-      // On mobile, hide scene list after selecting a scene.
-      if (document.body.classList.contains('mobile')) {
-        hideSceneList();
+  // Change active tile layer by index
+  function setLayer(index) {
+    if (!mapMap || !layers || !layers.length) return;
+    index = (index % layers.length + layers.length) % layers.length;
+    if (index === currentLayerIndex) return;
+    try { mapMap.removeLayer(layers[currentLayerIndex]); } catch(e){}
+    currentLayerIndex = index;
+    layers[currentLayerIndex].addTo(mapMap);
+    var mapLayerNameEl = document.getElementById('map-layer-name');
+    if (mapLayerNameEl) mapLayerNameEl.textContent = (currentLayerIndex === 0 ? 'OSM' : currentLayerIndex === 1 ? 'Satellite' : 'Carto');
+    // Sync dropdown if present
+    var sel = document.getElementById('map-layer-select');
+    if (sel) sel.value = String(currentLayerIndex);
+    // Update floating menu active item if present
+    var items = document.querySelectorAll('#map-controls-menu .map-controls-item');
+    items.forEach(function(it) {
+      var idx = parseInt(it.getAttribute('data-index'), 10);
+      if (idx === currentLayerIndex) it.classList.add('active'); else it.classList.remove('active');
+    });
+  }
+
+  function toggleLayer() { setLayer(currentLayerIndex + 1); }
+  // Expose to global for UI buttons in HTML
+  window.setLayer = setLayer;
+  window.toggleLayer = toggleLayer;
+  // Fit map view to include all markers
+  function fitAllMarkers() {
+    if (!mapMap || !mapMarkers || !mapMarkers.length) return;
+    var group = new L.featureGroup(mapMarkers.map(function(o) { return o.marker; }));
+    try {
+      mapMap.fitBounds(group.getBounds(), { padding: [60, 60], animate: true });
+    } catch (e) { console.warn('fitAllMarkers failed', e); }
+  }
+  window.fitAllMarkers = fitAllMarkers;
+
+  // Setup floating map controls (menu) — localized labels and event bindings
+  var _mapControlsInitialized = false;
+  function setupMapControls() {
+    if (_mapControlsInitialized) return;
+    _mapControlsInitialized = true;
+    var fitBtn = document.getElementById('map-controls-fit');
+    var cycleBtn = document.getElementById('map-controls-cycle');
+
+    if (fitBtn) fitBtn.addEventListener('click', function() { fitAllMarkers(); });
+    if (cycleBtn) cycleBtn.addEventListener('click', function() { toggleLayer(); });
+    setLayer(currentLayerIndex);
+  }
+  window.setupMapControls = setupMapControls;
+
+  function updateMapMarker(sceneId) {
+    if (!mapMap) return;
+    mapMarkers.forEach(function(obj) {
+      var isActive = (obj.id === sceneId);
+      // Ricrea icona basandosi sullo stato attivo
+      var color = isActive ? '#3498db' : '#555';
+      var html = `<svg viewBox="0 0 24 24" width="30" height="30" style="transform:scale(${isActive?1.3:1}); transition:all 0.3s;">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${color}" stroke="white" stroke-width="2"/>
+                <circle cx="12" cy="9" r="2.5" fill="white"/>
+               </svg>`;
+      
+      var icon = L.divIcon({ className: '', html: html, iconSize:[30,30], iconAnchor:[15,30] });
+      obj.marker.setIcon(icon);
+      
+      if(isActive) {
+        // Pan and zoom to active marker, open popup with coordinates
+        var latlng = obj.marker.getLatLng();
+        try { mapMap.setView(latlng, Math.max(mapMap.getZoom(), 16), { animate: true }); } catch(e) {}
+        try { obj.marker.openPopup(); } catch(e) {}
       }
     });
+  }
+
+  // Map Toggle Handler
+  if (mapToggle) {
+    mapToggle.addEventListener('click', function() {
+      var modal = document.getElementById('map-modal');
+      modal.style.display = 'flex';
+      setTimeout(function() { modal.classList.add('visible'); }, 10);
+      
+      // Init Map se necessario, o refresh size
+      if (!mapMap) {
+        initMap().then(function() {
+          // Aggiorna marker corrente alla prima apertura
+          var currentSceneId = scenes[0].data.id;
+          try {
+            if (viewer && typeof viewer.scene === 'function') {
+              var active = viewer.scene();
+              for (var si = 0; si < scenes.length; si++) {
+                if (scenes[si].scene === active) { currentSceneId = scenes[si].data.id; break; }
+              }
+            }
+          } catch(e) {}
+          updateMapMarker(currentSceneId);
+          // Setup floating controls once map is ready
+          try { setupMapControls(); } catch(e) {}
+        });
+      } else {
+        setTimeout(function(){ mapMap.invalidateSize(); }, 200);
+      }
+    });
+  }
+
+  window.closeMapModal = function() {
+    var modal = document.getElementById('map-modal');
+    modal.classList.remove('visible');
+    setTimeout(function() { modal.style.display = 'none'; }, 300);
+  };
+
+  // --- HOTSPOT CREATION ---
+
+  function createLinkHotspotElement(hotspot) {
+    var wrapper = document.createElement('div');
+    wrapper.classList.add('link-hotspot');
+    var icon = document.createElement('img');
+    icon.src = 'img/link.png'; // Assicurati di avere questa icona
+    icon.style.width = '100%'; icon.style.height = '100%';
+    
+    // Rotazione
+    icon.style.transform = 'rotate(' + hotspot.rotation + 'rad)';
+    
+    wrapper.appendChild(icon);
+    wrapper.addEventListener('click', function() {
+      switchScene(findSceneById(hotspot.target));
+    });
+    return wrapper;
+  }
+
+  function createInfoHotspotElement(hotspot) {
+    var wrapper = document.createElement('div');
+    wrapper.classList.add('info-hotspot');
+    var icon = document.createElement('img');
+    icon.src = 'img/info.png'; // Assicurati di avere questa icona
+    wrapper.appendChild(icon);
+
+    wrapper.addEventListener('click', function() {
+      openCustomModal(hotspot);
+    });
+    return wrapper;
+  }
+
+  // --- INFO MODAL LOGIC ---
+  function openCustomModal(hotspot) {
+    var modal = document.getElementById('custom-hotspot-modal');
+    var titleEl = document.getElementById('modal-title');
+    var bodyEl = document.getElementById('modal-body');
+
+    titleEl.textContent = getBilingualText(hotspot.title);
+    
+    var text = getBilingualText(hotspot.text);
+    var htmlContent = '<p>' + text + '</p>';
+    if (hotspot.image) {
+      htmlContent = '<img src="' + hotspot.image + '" alt="img">' + htmlContent;
+    }
+    
+    bodyEl.innerHTML = htmlContent;
+    modal.style.display = 'flex';
+    setTimeout(function() { modal.classList.add('visible'); }, 10);
+    stopAutorotate();
+  }
+
+  window.closeCustomModal = function() {
+    var modal = document.getElementById('custom-hotspot-modal');
+    modal.classList.remove('visible');
+    setTimeout(function() { modal.style.display = 'none'; }, 300);
+    if (autorotateToggle.classList.contains('active')) startAutorotate();
+  };
+
+  // --- HELPERS ---
+  function findSceneById(id) {
+    for (var i = 0; i < scenes.length; i++) {
+      if (scenes[i].data.id === id) return scenes[i];
+    }
+    return null;
+  }
+
+  // Autorotate logic
+  var autorotate = Marzipano.autorotate({ yawSpeed: 0.03, targetPitch: 0, targetFov: Math.PI/2 });
+  
+  function startAutorotate() {
+    viewer.startMovement(autorotate);
+    viewer.setIdleMovement(3000, autorotate);
+    autorotateToggle.classList.add('active');
+    autorotateToggle.querySelector('.icon-play').style.display = 'none';
+    autorotateToggle.querySelector('.icon-pause').style.display = 'block';
+  }
+
+  function stopAutorotate() {
+    viewer.stopMovement();
+    viewer.setIdleMovement(Infinity);
+    autorotateToggle.classList.remove('active');
+    autorotateToggle.querySelector('.icon-play').style.display = 'block';
+    autorotateToggle.querySelector('.icon-pause').style.display = 'none';
+  }
+
+  autorotateToggle.addEventListener('click', function() {
+    if (autorotateToggle.classList.contains('active')) stopAutorotate();
+    else startAutorotate();
   });
 
-  // DOM elements for view controls.
+  // Fullscreen logic
+  if (screenfull.enabled) {
+    fullscreenToggle.addEventListener('click', function() { screenfull.toggle(); });
+    screenfull.on('change', function() {
+       if(screenfull.isFullscreen) {
+         fullscreenToggle.querySelector('.icon-fs-on').style.display = 'none';
+         fullscreenToggle.querySelector('.icon-fs-off').style.display = 'block';
+       } else {
+         fullscreenToggle.querySelector('.icon-fs-on').style.display = 'block';
+         fullscreenToggle.querySelector('.icon-fs-off').style.display = 'none';
+       }
+    });
+  }
+
+  // Language Toggle
+  if (languageToggle) {
+    languageToggle.addEventListener('click', function() {
+      var currentLang = localStorage.getItem('tourLanguage') === 'en' ? 'it' : 'en';
+      setLanguage(currentLang);
+      languageToggle.querySelector('.lang-text').textContent = currentLang.toUpperCase();
+      // Aggiorna titolo scena corrente
+      var currentSceneName = null;
+      try {
+        if (viewer && typeof viewer.scene === 'function') {
+          var activeS = viewer.scene();
+          for (var j = 0; j < scenes.length; j++) {
+            if (scenes[j].scene === activeS) { currentSceneName = scenes[j].data.name; break; }
+          }
+        }
+      } catch(e) {}
+      if (currentSceneName) sceneNameElement.textContent = currentSceneName; // In un'app reale il nome dovrebbe venire da translations
+    });
+  }
+
+  // --- NAVIGATION CONTROLS LOGIC ---
+  
+  // Elementi DOM
   var viewUpElement = document.querySelector('#viewUp');
   var viewDownElement = document.querySelector('#viewDown');
   var viewLeftElement = document.querySelector('#viewLeft');
   var viewRightElement = document.querySelector('#viewRight');
   var viewInElement = document.querySelector('#viewIn');
   var viewOutElement = document.querySelector('#viewOut');
+  var bottomBarToggle = document.querySelector('#bottomBarToggle');
+  var bottomBar = document.querySelector('#bottomBar');
 
-  // Dynamic parameters for controls.
+  // Configurazione velocità movimento
   var velocity = 0.7;
   var friction = 3;
 
-  // Associate view controls with elements.
-  var controls = viewer.controls();
-  controls.registerMethod('upElement',    new Marzipano.ElementPressControlMethod(viewUpElement,     'y', -velocity, friction), true);
-  controls.registerMethod('downElement',  new Marzipano.ElementPressControlMethod(viewDownElement,   'y',  velocity, friction), true);
-  controls.registerMethod('leftElement',  new Marzipano.ElementPressControlMethod(viewLeftElement,   'x', -velocity, friction), true);
-  controls.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement,  'x',  velocity, friction), true);
-  controls.registerMethod('inElement',    new Marzipano.ElementPressControlMethod(viewInElement,  'zoom', -velocity, friction), true);
-  controls.registerMethod('outElement',   new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom',  velocity, friction), true);
+  // Collega i pulsanti al viewer Marzipano
+  var controlsNav = viewer.controls();
+  
+  // Registra i metodi di controllo solo se gli elementi esistono
+  if (viewUpElement) controlsNav.registerMethod('upElement', new Marzipano.ElementPressControlMethod(viewUpElement, 'y', -velocity, friction), true);
+  if (viewDownElement) controlsNav.registerMethod('downElement', new Marzipano.ElementPressControlMethod(viewDownElement, 'y', velocity, friction), true);
+  if (viewLeftElement) controlsNav.registerMethod('leftElement', new Marzipano.ElementPressControlMethod(viewLeftElement, 'x', -velocity, friction), true);
+  if (viewRightElement) controlsNav.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement, 'x', velocity, friction), true);
+  if (viewInElement) controlsNav.registerMethod('inElement', new Marzipano.ElementPressControlMethod(viewInElement, 'zoom', -velocity, friction), true);
+  if (viewOutElement) controlsNav.registerMethod('outElement', new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom', velocity, friction), true);
 
-  function sanitize(s) {
-    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;');
-  }
-
-  function switchScene(scene) {
-    stopAutorotate();
-    scene.view.setParameters(scene.data.initialViewParameters);
-    scene.scene.switchTo();
-    startAutorotate();
-    updateSceneName(scene);
-    updateSceneList(scene);
-  }
-
-  function updateSceneName(scene) {
-    sceneNameElement.innerHTML = sanitize(scene.data.name);
-  }
-
-  function updateSceneList(scene) {
-    for (var i = 0; i < sceneElements.length; i++) {
-      var el = sceneElements[i];
-      if (el.getAttribute('data-id') === scene.data.id) {
-        el.classList.add('current');
-      } else {
-        el.classList.remove('current');
-      }
-    }
-  }
-
-  function showSceneList() {
-    sceneListElement.classList.add('enabled');
-    sceneListToggleElement.classList.add('enabled');
-  }
-
-  function hideSceneList() {
-    sceneListElement.classList.remove('enabled');
-    sceneListToggleElement.classList.remove('enabled');
-  }
-
-  function toggleSceneList() {
-    sceneListElement.classList.toggle('enabled');
-    sceneListToggleElement.classList.toggle('enabled');
-  }
-
-  function startAutorotate() {
-    if (!autorotateToggleElement.classList.contains('enabled')) {
-      return;
-    }
-    viewer.startMovement(autorotate);
-    viewer.setIdleMovement(3000, autorotate);
-  }
-
-  function stopAutorotate() {
-    viewer.stopMovement();
-    viewer.setIdleMovement(Infinity);
-  }
-
-  function toggleAutorotate() {
-    if (autorotateToggleElement.classList.contains('enabled')) {
-      autorotateToggleElement.classList.remove('enabled');
-      stopAutorotate();
-    } else {
-      autorotateToggleElement.classList.add('enabled');
-      startAutorotate();
-    }
-  }
-
-  function createLinkHotspotElement(hotspot) {
-
-    // Create wrapper element to hold icon and tooltip.
-    var wrapper = document.createElement('div');
-    wrapper.classList.add('hotspot');
-    wrapper.classList.add('link-hotspot');
-
-    // Create image element.
-    var icon = document.createElement('img');
-    icon.src = 'img/link.png';
-    icon.classList.add('link-hotspot-icon');
-
-    // Set rotation transform.
-    var transformProperties = [ '-ms-transform', '-webkit-transform', 'transform' ];
-    for (var i = 0; i < transformProperties.length; i++) {
-      var property = transformProperties[i];
-      icon.style[property] = 'rotate(' + hotspot.rotation + 'rad)';
-    }
-
-    // Add click event handler.
-    wrapper.addEventListener('click', function() {
-      switchScene(findSceneById(hotspot.target));
-    });
-
-    // Prevent touch and scroll events from reaching the parent element.
-    // This prevents the view control logic from interfering with the hotspot.
-    stopTouchAndScrollEventPropagation(wrapper);
-
-    // Create tooltip element.
-    var tooltip = document.createElement('div');
-    tooltip.classList.add('hotspot-tooltip');
-    tooltip.classList.add('link-hotspot-tooltip');
-    tooltip.innerHTML = findSceneDataById(hotspot.target).name;
-
-    wrapper.appendChild(icon);
-    wrapper.appendChild(tooltip);
-
-    return wrapper;
-  }
-
-  function createInfoHotspotElement(hotspot) {
-    // Crea hotspot con design originale (icona info grigia)
-    var wrapper = document.createElement('div');
-    wrapper.classList.add('hotspot');
-    wrapper.classList.add('info-hotspot');
-
-    // Create hotspot/tooltip header.
-    var header = document.createElement('div');
-    header.classList.add('info-hotspot-header');
-
-    // Create image element.
-    var iconWrapper = document.createElement('div');
-    iconWrapper.classList.add('info-hotspot-icon-wrapper');
-    var icon = document.createElement('img');
-    icon.src = 'img/info.png';
-    icon.classList.add('info-hotspot-icon');
-    iconWrapper.appendChild(icon);
-
-    // Create title element.
-    var titleWrapper = document.createElement('div');
-    titleWrapper.classList.add('info-hotspot-title-wrapper');
-    var title = document.createElement('div');
-    title.classList.add('info-hotspot-title');
-    title.innerHTML = getBilingualText(hotspot.title);
-    titleWrapper.appendChild(title);
-
-    // Construct header element.
-    header.appendChild(iconWrapper);
-    header.appendChild(titleWrapper);
-
-    // Place header into wrapper element.
-    wrapper.appendChild(header);
-
-    // Click handler per aprire la modale personalizzata
-    header.addEventListener('click', function(e) {
-      e.stopPropagation();
-      openCustomModal(hotspot);
-    });
-
-    // Previeni eventi di propagazione
-    stopTouchAndScrollEventPropagation(wrapper);
-
-    return wrapper;
-  }
-
-  // Funzione per aprire la modale personalizzata
-  function openCustomModal(hotspot) {
-    var modal = document.getElementById('custom-hotspot-modal');
-    var modalTitle = document.getElementById('modal-title');
-    var modalBody = document.getElementById('modal-body');
-
-    if (!modal || !modalTitle || !modalBody) return;
-
-    // Ottieni testo nella lingua corrente
-    var title = getBilingualText(hotspot.title);
-    var text = getBilingualText(hotspot.text);
-
-    // Imposta il contenuto
-    modalTitle.textContent = title;
-
-    // Costruisci il body con testo a sinistra e immagine a destra
-    var bodyContent = '<div class="modal-body-text"><p>' + text + '</p></div>';
-    if (hotspot.image) {
-      bodyContent += '<div class="modal-body-image"><img src="' + hotspot.image + '" alt="' + title + '" onerror="this.parentElement.style.display=\'none\';"></div>';
-    }
-
-    modalBody.innerHTML = bodyContent;
-
-    // Mostra la modale
-    modal.classList.add('visible');
-
-    // Ferma autorotazione quando la modale è aperta
-    stopAutorotate();
-  }
-
-  // Funzione per chiudere la modale (disponibile globalmente)
-  window.closeCustomModal = function() {
-    var modal = document.getElementById('custom-hotspot-modal');
-    if (modal) {
-      modal.classList.remove('visible');
-      // Riprendi autorotazione se era abilitata
-      if (autorotateToggleElement.classList.contains('enabled')) {
-        startAutorotate();
-      }
-    }
-  };
-
-  // Chiudi modale cliccando fuori
-  // Chiudi solo la modale hotspot cliccando fuori, NON la mappa
-  document.addEventListener('click', function(e) {
-    var modal = document.getElementById('custom-hotspot-modal');
-    if (modal && e.target === modal) {
-      closeCustomModal();
-    }
-  });
-
-  // Chiudi modale con tasto ESC
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' || e.keyCode === 27) {
-      closeCustomModal();
-    }
-  });
-
-  // Logica per aprire/chiudere la modale mappa
-  if (mapToggleElement) {
-    mapToggleElement.addEventListener('click', function() {
-      var modal = document.getElementById('map-modal');
-      if (modal) {
-        modal.style.display = 'flex';
-        setTimeout(function() {
-          var mapDiv = document.getElementById('map-container');
-          if (window._leafletMap && mapDiv) {
-            try { window._leafletMap.remove(); } catch(e) {}
-            window._leafletMap = null;
-          }
-          var coords = (window.APP_DATA && window.APP_DATA.coordinates) || [
-            { lat: 45.2213333333333, lng: 11.2943416666667 },
-            { lat: 45.2208555555556, lng: 11.2942472222222 },
-            { lat: 45.1443555555556, lng: 12.300925 }
-          ];
-          var map = L.map('map-container').setView([coords[0].lat, coords[0].lng], 13);
-          // Definisci i layer
-          var baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
-          var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
-          var cartoLayer = L.tileLayer('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', { attribution: '© CartoDB' });
-          var layers = [baseLayer, satelliteLayer, cartoLayer];
-          var layerNames = ["OpenStreetMap", "Satellite Esri", "CartoDB"];
-          var currentLayer = 0;
-          layers[currentLayer].addTo(map);
-          // Aggiorna nome layer
-          var layerNameEl = document.getElementById('map-layer-name');
-          if (layerNameEl) layerNameEl.textContent = layerNames[currentLayer];
-          // Marker panorami
-          // Icona goccia classica SVG
-          function getMarkerIcon(isActive) {
-            return L.divIcon({
-              className: '',
-              html: `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 3C10.477 3 6 7.477 6 13c0 7.5 9.5 15.5 9.5 15.5s9.5-8 9.5-15.5c0-5.523-4.477-10-10-10Z" fill="${isActive ? '#27ae60' : '#3498db'}" stroke="white" stroke-width="2"/>
-                <circle cx="16" cy="13" r="4" fill="white"/>
-              </svg>`,
-              iconSize: [32, 32],
-              iconAnchor: [16, 32],
-              popupAnchor: [0, -32]
-            });
-          }
-
-          var markers = coords.map(function(coord, i) {
-            var isActive = (window._leafletMap && window._leafletMap._activeIndex === i) || i === 0;
-            var marker = L.marker([coord.lat, coord.lng], { icon: getMarkerIcon(isActive) }).addTo(map);
-            var panoName = (window.APP_DATA && window.APP_DATA.scenes && window.APP_DATA.scenes[i] && window.APP_DATA.scenes[i].name) ? window.APP_DATA.scenes[i].name : 'Panorama ' + (i+1);
-            marker.bindPopup(panoName);
-            marker.on('click', function() {
-              // Cambia la vista al panorama relativo
-              var el = document.querySelector('#sceneList .scene[data-id="' + window.APP_DATA.scenes[i].id + '"]');
-              if (el) el.click();
-              // Aggiorna marker attivo
-              markers.forEach(function(m, idx) {
-                m.setIcon(getMarkerIcon(idx === i));
-              });
-              map._activeIndex = i;
-            });
-            return marker;
-          });
-
-          // Aggiorna marker attivo quando si cambia panorama dalla lista
-          document.querySelectorAll('#sceneList .scene').forEach(function(el, idx) {
-            el.addEventListener('click', function() {
-              markers.forEach(function(m, i) {
-                m.setIcon(getMarkerIcon(i === idx));
-              });
-              map._activeIndex = idx;
-            });
-          });
-
-          // Controllo custom: cambio layer
-          var LayerControl = L.Control.extend({
-            options: { position: 'bottomright' },
-            onAdd: function(map) {
-              var btn = L.DomUtil.create('button', 'leaflet-control-custom');
-              btn.title = 'Cambia layer';
-              btn.style.background = '#3498db';
-              btn.style.border = 'none';
-              btn.style.borderRadius = '6px';
-              btn.style.width = '40px';
-              btn.style.height = '40px';
-              btn.style.display = 'flex';
-              btn.style.alignItems = 'center';
-              btn.style.justifyContent = 'center';
-              btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 17L10 14L14 17L20 14V7L14 10L10 7L4 10V17Z" stroke="white" stroke-width="2" fill="#3498db"/><path d="M4 10L10 13L14 10L20 13" stroke="white" stroke-width="2"/><path d="M10 13V7" stroke="white" stroke-width="2"/><path d="M14 10V17" stroke="white" stroke-width="2"/></svg>';
-              L.DomEvent.on(btn, 'click', function(e) {
-                map.removeLayer(layers[currentLayer]);
-                currentLayer = (currentLayer + 1) % layers.length;
-                layers[currentLayer].addTo(map);
-                // Aggiorna nome layer
-                var layerNameEl = document.getElementById('map-layer-name');
-                if (layerNameEl) layerNameEl.textContent = layerNames[currentLayer];
-                L.DomEvent.stopPropagation(e);
-              });
-              return btn;
-            }
-          });
-                    // Aggiorna coordinate della vista
-                    var coordsEl = document.getElementById('map-coords');
-                    function updateCoords() {
-                      if (coordsEl && map) {
-                        var c = map.getCenter();
-                        // Trova il panorama più vicino al centro
-                        var minDist = Infinity, panoName = '';
-                        coords.forEach(function(coord, i) {
-                          var dist = Math.sqrt(Math.pow(coord.lat - c.lat, 2) + Math.pow(coord.lng - c.lng, 2));
-                          if (dist < minDist) {
-                            minDist = dist;
-                            panoName = (window.APP_DATA && window.APP_DATA.scenes && window.APP_DATA.scenes[i] && window.APP_DATA.scenes[i].name) ? window.APP_DATA.scenes[i].name : 'Panorama ' + (i+1);
-                          }
-                        });
-                        coordsEl.textContent = panoName + ': ' + c.lat.toFixed(5) + ', ' + c.lng.toFixed(5);
-                      }
-                    }
-                    map.on('move', updateCoords);
-                    map.on('zoom', updateCoords);
-                    updateCoords();
-          map.addControl(new LayerControl());
-
-          // Controllo custom: centra panorami
-          var CenterControl = L.Control.extend({
-            options: { position: 'bottomright' },
-            onAdd: function(map) {
-              var btn = L.DomUtil.create('button', 'leaflet-control-custom');
-              btn.title = 'Centra panorami';
-              btn.style.background = '#27ae60';
-              btn.style.border = 'none';
-              btn.style.borderRadius = '6px';
-              btn.style.width = '40px';
-              btn.style.height = '40px';
-              btn.style.display = 'flex';
-              btn.style.alignItems = 'center';
-              btn.style.justifyContent = 'center';
-              btn.style.marginLeft = '8px';
-              btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8" stroke="white" stroke-width="2" fill="#27ae60"/><circle cx="12" cy="12" r="2" fill="white"/><line x1="12" y1="2" x2="12" y2="6" stroke="white" stroke-width="2"/><line x1="12" y1="18" x2="12" y2="22" stroke="white" stroke-width="2"/><line x1="2" y1="12" x2="6" y2="12" stroke="white" stroke-width="2"/><line x1="18" y1="12" x2="22" y2="12" stroke="white" stroke-width="2"/></svg>';
-              L.DomEvent.on(btn, 'click', function(e) {
-                var group = new L.featureGroup(markers);
-                map.fitBounds(group.getBounds().pad(0.2));
-                L.DomEvent.stopPropagation(e);
-              });
-              return btn;
-            }
-          });
-          map.addControl(new CenterControl());
-
-          window._leafletMap = map;
-        }, 100);
-      }
+  // --- TOGGLE BAR LOGIC ---
+  if (bottomBarToggle && bottomBar) {
+    bottomBarToggle.addEventListener('click', function() {
+      bottomBar.classList.toggle('collapsed');
+      // Forza un resize del viewer se la dimensione della canvas cambia
+      setTimeout(function() { if (viewer && viewer.resize) viewer.resize(); }, 420);
     });
   }
-  window.closeMapModal = function() {
-    var modal = document.getElementById('map-modal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
-  };
-  // Chiudi modale mappa con ESC
-  window.addEventListener('keydown', function(e) {
-    if ((e.key === 'Escape' || e.keyCode === 27)) {
-      closeMapModal();
-    }
-  });
 
-  // Prevent touch and scroll events from reaching the parent element.
-  function stopTouchAndScrollEventPropagation(element, eventList) {
-    var eventList = [ 'touchstart', 'touchmove', 'touchend', 'touchcancel',
-                      'wheel', 'mousewheel' ];
-    for (var i = 0; i < eventList.length; i++) {
-      element.addEventListener(eventList[i], function(event) {
-        event.stopPropagation();
-      });
-    }
-  }
+  // --- THUMBNAIL SIDE ARROWS (prev/next) ---
+  var thumbPrev = document.getElementById('thumbPrev');
+  var thumbNext = document.getElementById('thumbNext');
 
-  function findSceneById(id) {
+  function getCurrentThumbIndex() {
+    var current = document.querySelector('.thumb.current');
+    if (!current) return 0;
+    var id = current.getAttribute('data-id');
     for (var i = 0; i < scenes.length; i++) {
-      if (scenes[i].data.id === id) {
-        return scenes[i];
-      }
+      if (scenes[i].data.id === id) return i;
     }
-    return null;
+    return 0;
   }
 
-  function findSceneDataById(id) {
-    for (var i = 0; i < data.scenes.length; i++) {
-      if (data.scenes[i].id === id) {
-        return data.scenes[i];
-      }
-    }
-    return null;
+  if (thumbPrev) {
+    thumbPrev.addEventListener('click', function() {
+      var idx = getCurrentThumbIndex();
+      var next = (idx - 1 + scenes.length) % scenes.length;
+      switchScene(scenes[next]);
+    });
+  }
+  if (thumbNext) {
+    thumbNext.addEventListener('click', function() {
+      var idx = getCurrentThumbIndex();
+      var next = (idx + 1) % scenes.length;
+      switchScene(scenes[next]);
+    });
   }
 
-  // Display the initial scene.
+  // Initial setup
   switchScene(scenes[0]);
 
 })();
