@@ -58,6 +58,14 @@ function hideInfoHotspot() {
 'use strict';
 
 (function() {
+    var thumbsContainer = document.getElementById('thumbsContainer');
+    var toggleThumbsBtn = document.getElementById('toggleThumbs');
+    if (toggleThumbsBtn && thumbsContainer) {
+      toggleThumbsBtn.addEventListener('click', function() {
+        thumbsContainer.classList.toggle('collapsed');
+        toggleThumbsBtn.classList.toggle('active');
+      });
+    }
   var Marzipano = window.Marzipano;
   var screenfull = window.screenfull;
   var data = window.APP_DATA;

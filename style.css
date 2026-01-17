@@ -1,3 +1,16 @@
+#thumbsContainer.collapsed {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  transition: max-height 0.3s cubic-bezier(.4,1.6,.4,1);
+}
+#toggleThumbs {
+  transition: background 0.2s, transform 0.2s;
+}
+#toggleThumbs.active {
+  background: rgba(52,152,219,0.18);
+  transform: scale(0.95);
+}
 /* --- HOTSPOT INFO MODERNO --- */
 .hotspot-info {
   width: 34px; height: 34px;
