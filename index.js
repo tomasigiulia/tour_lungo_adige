@@ -789,8 +789,35 @@ function hideInfoHotspot() {
     // Modalità visore: solo mobile, placeholder (da integrare con WebXR/VR se serve)
     var vrToggle = document.getElementById('vrToggle');
     if(vrToggle) {
-      vrToggle.addEventListener('click', function() {
-        alert('Modalità visore attivata! (Qui puoi integrare WebXR/VR)');
+      vrToggle.addEventListener('click', async function() {
+        // Prova a richiedere permesso per DeviceOrientation su iOS
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          try {
+            const response = await DeviceOrientationEvent.requestPermission();
+            if (response !== 'granted') {
+              alert('Per la modalità immersiva, consenti l\'accesso ai sensori di movimento.');
+              return;
+            }
+          } catch (e) {
+            alert('Permesso ai sensori negato.');
+            return;
+          }
+        }
+        // Prova a mettere in fullscreen
+        if (screenfull.enabled) {
+          screenfull.request();
+        }
+        // Attiva modalità "immersiva" (Cardboard): ruota la vista con il telefono
+        if (window.Marzipano && viewer && viewer.controls) {
+          try {
+            viewer.controls().enableMethod('deviceOrientation');
+          } catch(e) {
+            // fallback: mostra solo un messaggio
+            alert('Modalità immersiva attivata! Ruota il telefono per esplorare.');
+          }
+        } else {
+          alert('Modalità immersiva attivata! Ruota il telefono per esplorare.');
+        }
       });
     }
   }
