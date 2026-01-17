@@ -1,3 +1,102 @@
+.modal-body-map {
+  position: relative;
+  min-height: 260px;
+}
+#map-container {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.map-content {
+  min-height: 260px;
+}
+/* Forza barra scala e crediti Leaflet dentro la mappa, sopra la barra nera */
+#map-container .leaflet-control-container {
+  bottom: 0 !important;
+}
+#map-container .leaflet-control-attribution,
+#map-container .leaflet-control-scale {
+  margin-bottom: 32px !important;
+  z-index: 30;
+}
+/* Barra nera in basso per resize */
+.modal-footer-bar {
+  width: 100%;
+  height: 11px;
+  background: #23272b;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  z-index: 15;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0;
+  position: static;
+  flex-shrink: 0;
+}
+#map-resize-handle-left {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  height: 28px;
+  cursor: sw-resize;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+#map-resize-handle-left svg {
+  pointer-events: none;
+}
+#map-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  height: 28px;
+  cursor: se-resize;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+/* Evidenziazione drag/resize modale mappa */
+#map-modal-header {
+  cursor: move;
+  user-select: none;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  background: #23272b;
+  color: #fff;
+}
+
+#map-container {
+  border-radius: 10px;
+}
+
+#map-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  height: 28px;
+  cursor: se-resize;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+#map-resize-handle:hover {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px #23272b);
+}
+#map-resize-handle svg {
+  pointer-events: none;
+}
 /* --- LANGUAGE BUTTON SIMPLE --- */
 /* Tasto lingua adattivo e in alto a destra */
 /* Tasto lingua perfettamente circolare e centrato */

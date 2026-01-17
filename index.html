@@ -115,14 +115,140 @@ languageToggle.addEventListener('click', function() {
 </div>
 
 <div id="map-modal" class="custom-modal" style="display:none;">
-  <div class="modal-content map-content">
-    <div class="modal-header">
+  <div class="modal-content map-content" style="display:flex;flex-direction:column;min-height:260px;">
+    <div class="modal-header" id="map-modal-header" style="cursor: move; user-select:none; border-top-left-radius:12px; border-top-right-radius:12px; background:#23272b; color:#fff;">
       <span id="map-layer-name">Mappa</span>
       <span id="map-coords" style="margin-left:12px;color:#fff;font-size:13px;text-align:left;display:inline-block;min-width:120px;"></span>
       <button class="modal-close" onclick="closeMapModal()">&times;</button>
     </div>
-    <div class="modal-body-map">
-      <div id="map-container"></div>
+    <div class="modal-body-map" style="flex:1 1 auto;position:relative;display:flex;flex-direction:column;min-height:0;">
+      <div id="map-container" style="border-top-left-radius:10px;border-top-right-radius:10px;flex:1 1 auto;min-height:120px;"></div>
+    </div>
+    <div class="modal-footer-bar" style="position:relative;">
+      <div id="map-resize-handle-left" style="position:absolute;left:0;bottom:0;width:28px;height:22px;cursor:sw-resize;display:flex;align-items:flex-end;justify-content:flex-start;z-index:20;">
+        <svg width="28" height="22" viewBox="0 0 28 22">
+          <polygon points="0,22 16,22 0,6" fill="#e0e0e0" />
+        </svg>
+        <svg id="resize-icon-left" width="16" height="16" viewBox="0 0 16 16" style="position:absolute;left:2px;bottom:2px;display:none;pointer-events:none;">
+          <g stroke="#23272b" stroke-width="2" stroke-linecap="round">
+            <line x1="10" y1="15" x2="2" y2="7" />
+            <line x1="6" y1="16" x2="0" y2="10" />
+          </g>
+        </svg>
+      </div>
+      <div id="map-resize-handle" style="position:absolute;right:0;bottom:0;width:28px;height:22px;cursor:se-resize;display:flex;align-items:flex-end;justify-content:flex-end;z-index:20;">
+        <svg width="28" height="22" viewBox="0 0 28 22">
+          <polygon points="28,22 12,22 28,6" fill="#e0e0e0" />
+        </svg>
+        <svg id="resize-icon-right" width="16" height="16" viewBox="0 0 16 16" style="position:absolute;right:2px;bottom:2px;display:none;pointer-events:none;">
+          <g stroke="#23272b" stroke-width="2" stroke-linecap="round">
+            <line x1="6" y1="15" x2="14" y2="7" />
+            <line x1="10" y1="16" x2="16" y2="10" />
+          </g>
+        </svg>
+      </div>
+    </div>
+      <script>
+      // --- MAPPA: Ridimensionamento e Drag ---
+      const mapModal = document.querySelector('.map-content');
+      const resizeHandle = document.getElementById('map-resize-handle');
+      const resizeHandleLeft = document.getElementById('map-resize-handle-left');
+      const mapHeader = document.getElementById('map-modal-header');
+      let resizing = false, dragging = false;
+      let startX, startY, startW, startH, startLeft, startTop;
+
+
+      resizeHandle.addEventListener('mousedown', function(e){ startResize(e, 'right'); });
+      resizeHandle.addEventListener('touchstart', function(e){ startResize(e, 'right'); }, {passive:false});
+      resizeHandleLeft.addEventListener('mousedown', function(e){ startResize(e, 'left'); });
+      resizeHandleLeft.addEventListener('touchstart', function(e){ startResize(e, 'left'); }, {passive:false});
+
+      let resizeSide = 'right';
+      function startResize(e, side) {
+        e.preventDefault();
+        resizing = true;
+        resizeSide = side;
+        startX = e.touches ? e.touches[0].clientX : e.clientX;
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        const rect = mapModal.getBoundingClientRect();
+        startW = rect.width;
+        startH = rect.height;
+        startLeft = rect.left;
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+        document.addEventListener('touchmove', doResize, {passive:false});
+        document.addEventListener('touchend', stopResize);
+      }
+      function doResize(e) {
+        if (!resizing) return;
+        let x = e.touches ? e.touches[0].clientX : e.clientX;
+        let y = e.touches ? e.touches[0].clientY : e.clientY;
+        let newW, newH;
+        if(resizeSide === 'right') {
+          newW = Math.max(220, startW + (x - startX));
+        } else {
+          newW = Math.max(220, startW - (x - startX));
+          // Sposta anche la modale a sinistra
+          mapModal.style.left = (startLeft + (x - startX)) + 'px';
+        }
+        newH = Math.max(140, startH + (y - startY));
+        mapModal.style.width = newW + 'px';
+        mapModal.style.height = newH + 'px';
+        // Fix Leaflet: forza il resize della mappa
+        if(window.mapMap && window.mapMap.invalidateSize) setTimeout(()=>window.mapMap.invalidateSize(), 10);
+      }
+      function stopResize() {
+        resizing = false;
+        document.removeEventListener('mousemove', doResize);
+        document.removeEventListener('mouseup', stopResize);
+        document.removeEventListener('touchmove', doResize);
+        document.removeEventListener('touchend', stopResize);
+      }
+      // Hover: mostra icona resize
+      const resizeIconRight = document.getElementById('resize-icon-right');
+      const resizeIconLeft = document.getElementById('resize-icon-left');
+      resizeHandle.addEventListener('mouseenter', ()=>{ resizeIconRight.style.display = 'block'; });
+      resizeHandle.addEventListener('mouseleave', ()=>{ resizeIconRight.style.display = 'none'; });
+      resizeHandleLeft.addEventListener('mouseenter', ()=>{ resizeIconLeft.style.display = 'block'; });
+      resizeHandleLeft.addEventListener('mouseleave', ()=>{ resizeIconLeft.style.display = 'none'; });
+
+      // Drag (mouse/touch) sulla barra header
+      mapHeader.addEventListener('mousedown', startDrag);
+      mapHeader.addEventListener('touchstart', startDrag, {passive:false});
+      function startDrag(e) {
+        if (e.target.closest('.modal-close')) return; // non trascinare se clicchi la X
+        dragging = true;
+        startX = e.touches ? e.touches[0].clientX : e.clientX;
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        const rect = mapModal.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('mouseup', stopDrag);
+        document.addEventListener('touchmove', doDrag, {passive:false});
+        document.addEventListener('touchend', stopDrag);
+      }
+      function doDrag(e) {
+        if (!dragging) return;
+        let x = e.touches ? e.touches[0].clientX : e.clientX;
+        let y = e.touches ? e.touches[0].clientY : e.clientY;
+        let newLeft = startLeft + (x - startX);
+        let newTop = startTop + (y - startY);
+        mapModal.style.position = 'fixed';
+        mapModal.style.left = newLeft + 'px';
+        mapModal.style.top = newTop + 'px';
+        mapModal.style.margin = '0';
+        // Fix Leaflet: forza il resize della mappa
+        if(window.mapMap && window.mapMap.invalidateSize) setTimeout(()=>window.mapMap.invalidateSize(), 10);
+      }
+      function stopDrag() {
+        dragging = false;
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('mouseup', stopDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('touchend', stopDrag);
+      }
+      </script>
       <!-- Floating map controls: solo cambio layer e mostra tutti -->
       <div id="map-controls-floating" class="map-controls-floating">
         <div class="map-controls-stack">
