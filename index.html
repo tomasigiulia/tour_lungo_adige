@@ -11,15 +11,35 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
+
 <!-- Tasto lingua in alto a sinistra -->
 <body>
-<a href="javascript:void(0)" id="languageToggle" class="lang-switch lang-switch-floating it" aria-label="Cambia Lingua">
-  <span class="lang-switcher">
-    <span class="lang-opt lang-it active">IT</span>
-    <span class="lang-opt lang-en">EN</span>
-    <span class="lang-switch-slider"></span>
-  </span>
+<a href="javascript:void(0)" id="languageToggle" class="glass-btn lang-btn-simple" aria-label="Cambia Lingua">
+  <span id="lang-flag" class="lang-flag">🇮🇹</span>
+  <span id="lang-label" class="lang-label">IT</span>
 </a>
+<script>
+// Semplice toggle lingua con bandiera
+const languageToggle = document.getElementById('languageToggle');
+const langLabel = document.getElementById('lang-label');
+const langFlag = document.getElementById('lang-flag');
+let currentLang = 'it';
+languageToggle.addEventListener('click', function() {
+  if(currentLang === 'it') {
+    currentLang = 'en';
+    langLabel.textContent = 'EN';
+    langFlag.textContent = '🇬🇧';
+    document.body.classList.add('lang-en');
+    document.body.classList.remove('lang-it');
+  } else {
+    currentLang = 'it';
+    langLabel.textContent = 'IT';
+    langFlag.textContent = '🇮🇹';
+    document.body.classList.add('lang-it');
+    document.body.classList.remove('lang-en');
+  }
+});
+</script>
 <body>
 
 <div id="pano"></div>

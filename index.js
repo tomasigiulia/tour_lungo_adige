@@ -101,12 +101,12 @@
     var modal = document.getElementById('map-modal');
     modal.classList.remove('visible');
     setTimeout(function() { modal.style.display = 'none'; }, 300);
-    // Anima il tasto mappa per suggerire dove cliccare
-    var mapToggle = document.getElementById('mapToggle');
-    if(mapToggle) {
-      mapToggle.classList.add('hint-anim');
-      setTimeout(function(){ mapToggle.classList.remove('hint-anim'); }, 1200);
-    }
+      // Removed the logic that applies the map-hint-ring class
+      // var mapToggle = document.getElementById('mapToggle');
+      // if(mapToggle) {
+      //   mapToggle.classList.add('hint-anim');
+      //   setTimeout(function(){ mapToggle.classList.remove('hint-anim'); }, 1200);
+      // }
   }
 
   function switchScene(scene) {
@@ -512,21 +512,37 @@
     document.addEventListener('mousedown', handler, true);
   }
 
-  // Apri la mappa all'avvio
+
+
+  // Carica subito il primo panorama all'avvio e lascia la mappa sempre aperta
   window.addEventListener('DOMContentLoaded', function() {
-    openMapModal();
-    setupAutoCloseMapModal();
+    switchScene(scenes[0]);
+    var modal = document.getElementById('map-modal');
+    modal.style.display = 'flex';
+    setTimeout(function() { modal.classList.add('visible'); }, 10);
   });
 
-  // Apri la mappa ad ogni cambio panorama e chiudi al primo click fuori
+
+  // Apri la mappa ad ogni cambio panorama e assicurati che resti aperta
   var origSwitchScene = switchScene;
   switchScene = function(scene) {
     origSwitchScene(scene);
-    setupAutoCloseMapModal();
+    var modal = document.getElementById('map-modal');
+    modal.style.display = 'flex';
+    setTimeout(function() { modal.classList.add('visible'); }, 10);
   };
 
   window.closeMapModal = function() {
-    closeMapModalWithHint();
+    // Chiudi la mappa, ma al prossimo cambio scena si riaprirà
+    var modal = document.getElementById('map-modal');
+    modal.classList.remove('visible');
+    setTimeout(function() { modal.style.display = 'none'; }, 300);
+    // Effetto anello sul tasto mappa
+    var mapBtn = document.getElementById('mapToggle');
+    if(mapBtn) {
+      mapBtn.classList.add('map-hint-ring');
+      setTimeout(function(){ mapBtn.classList.remove('map-hint-ring'); }, 1400);
+    }
   };
 
   // --- HOTSPOT CREATION ---
