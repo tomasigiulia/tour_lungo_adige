@@ -58,6 +58,32 @@ function hideInfoHotspot() {
 'use strict';
 
 (function() {
+      // Frecce laterali panorama
+      var panoArrowLeft = document.getElementById('panoArrowLeft');
+      var panoArrowRight = document.getElementById('panoArrowRight');
+      function getCurrentThumbIndex() {
+        var current = document.querySelector('.thumb.current');
+        if (!current) return 0;
+        var id = current.getAttribute('data-id');
+        for (var i = 0; i < scenes.length; i++) {
+          if (scenes[i].data.id === id) return i;
+        }
+        return 0;
+      }
+      if (panoArrowLeft) {
+        panoArrowLeft.addEventListener('click', function() {
+          var idx = getCurrentThumbIndex();
+          var next = (idx - 1 + scenes.length) % scenes.length;
+          switchScene(scenes[next]);
+        });
+      }
+      if (panoArrowRight) {
+        panoArrowRight.addEventListener('click', function() {
+          var idx = getCurrentThumbIndex();
+          var next = (idx + 1) % scenes.length;
+          switchScene(scenes[next]);
+        });
+      }
     var thumbsContainer = document.getElementById('thumbsContainer');
     var toggleThumbsBtn = document.getElementById('toggleThumbs');
     if (toggleThumbsBtn && thumbsContainer) {

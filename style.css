@@ -1,3 +1,28 @@
+/* Frecce laterali sopra il panorama */
+.pano-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  width: 48px;
+  height: 48px;
+  background: rgba(20,24,28,0.55);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+  transition: background 0.18s, transform 0.18s;
+  opacity: 0.92;
+}
+.pano-arrow:hover {
+  background: rgba(52,152,219,0.85);
+  transform: translateY(-50%) scale(1.08);
+}
+.pano-arrow-left { left: 18px; }
+.pano-arrow-right { right: 18px; }
+.pano-arrow svg { width: 32px; height: 32px; }
 #thumbsContainer.collapsed {
   max-height: 0 !important;
   overflow: hidden !important;
