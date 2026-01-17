@@ -1,3 +1,9 @@
+.desktop-only { display: inline-flex !important; }
+.mobile-only { display: none !important; }
+@media (max-width: 700px), (pointer: coarse) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: inline-flex !important; }
+}
 .modal-body-map {
   position: relative;
   min-height: 260px;

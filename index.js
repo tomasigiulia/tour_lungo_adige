@@ -674,16 +674,29 @@
 
   // Fullscreen logic
   if (screenfull.enabled) {
-    fullscreenToggle.addEventListener('click', function() { screenfull.toggle(); });
-    screenfull.on('change', function() {
-       if(screenfull.isFullscreen) {
-         fullscreenToggle.querySelector('.icon-fs-on').style.display = 'none';
-         fullscreenToggle.querySelector('.icon-fs-off').style.display = 'block';
-       } else {
-         fullscreenToggle.querySelector('.icon-fs-on').style.display = 'block';
-         fullscreenToggle.querySelector('.icon-fs-off').style.display = 'none';
-       }
-    });
+    // Mostra solo su desktop
+    if(window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) {
+      document.getElementById('fullscreenToggle').style.display = 'none';
+      document.getElementById('vrToggle').style.display = 'inline-flex';
+    } else {
+      fullscreenToggle.addEventListener('click', function() { screenfull.toggle(); });
+      screenfull.on('change', function() {
+         if(screenfull.isFullscreen) {
+           fullscreenToggle.querySelector('.icon-fs-on').style.display = 'none';
+           fullscreenToggle.querySelector('.icon-fs-off').style.display = 'block';
+         } else {
+           fullscreenToggle.querySelector('.icon-fs-on').style.display = 'block';
+           fullscreenToggle.querySelector('.icon-fs-off').style.display = 'none';
+         }
+      });
+    }
+    // Modalità visore: solo mobile, placeholder (da integrare con WebXR/VR se serve)
+    var vrToggle = document.getElementById('vrToggle');
+    if(vrToggle) {
+      vrToggle.addEventListener('click', function() {
+        alert('Modalità visore attivata! (Qui puoi integrare WebXR/VR)');
+      });
+    }
   }
 
   // Language Toggle
