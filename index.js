@@ -64,7 +64,7 @@ function hideInfoHotspot() {
 
   // DOM Elements
   var panoElement = document.querySelector('#pano');
-  var sceneNameElement = document.querySelector('.sceneName');
+  var sceneCaptionElement = document.getElementById('sceneCaption');
   var autorotateToggle = document.querySelector('#autorotateToggle');
   var fullscreenToggle = document.querySelector('#fullscreenToggle');
   var languageToggle = document.querySelector('#languageToggle');
@@ -223,7 +223,7 @@ function hideInfoHotspot() {
 
   function updateUI(scene) {
     // Update Title
-    sceneNameElement.textContent = scene.data.name;
+    if (sceneCaptionElement) sceneCaptionElement.textContent = scene.data.name;
 
     // Highlight Thumbnail
     document.querySelectorAll('.thumb').forEach(function(el) {
@@ -853,7 +853,7 @@ function hideInfoHotspot() {
           }
         }
       } catch(e) {}
-      if (currentSceneName) sceneNameElement.textContent = currentSceneName;
+      if (currentSceneName && sceneCaptionElement) sceneCaptionElement.textContent = currentSceneName;
     });
     // Inizializza lo stato visivo
     updateLangSwitchUI();
