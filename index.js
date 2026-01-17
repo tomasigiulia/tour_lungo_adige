@@ -498,7 +498,7 @@ function hideInfoHotspot() {
         var marker = L.marker([c.lat, c.lng], { icon: createIcon(i === 0) }).addTo(mapMap);
         marker.on('click', function() {
           switchScene(scenes[i]);
-          closeMapModal();
+          // La mappa resta aperta
         });
         // Attach popup with coordinates (mostra su hover)
         if (c && typeof c.lat === 'number' && typeof c.lng === 'number') {
