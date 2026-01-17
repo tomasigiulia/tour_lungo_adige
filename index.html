@@ -123,6 +123,34 @@ languageToggle.addEventListener('click', function() {
     </div>
     <div class="modal-body-map" style="flex:1 1 auto;position:relative;display:flex;flex-direction:column;min-height:0;">
       <div id="map-container" style="border-top-left-radius:10px;border-top-right-radius:10px;flex:1 1 auto;min-height:120px;"></div>
+      <!-- Floating map controls: solo cambio layer e mostra tutti -->
+      <div id="map-controls-floating" class="map-controls-floating">
+        <div class="map-controls-stack">
+          <button id="map-controls-cycle" class="map-controls-cycle" title="Cambia layer">
+            <span class="map-btn-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 22 7 12 12 2 7 12 2" fill="rgba(52,152,219,0.18)"/>
+                <polygon points="12 12 22 17 12 22 2 17 12 12" fill="rgba(52,152,219,0.32)"/>
+                <line x1="2" y1="7" x2="12" y2="12" />
+                <line x1="12" y1="12" x2="22" y2="7" />
+                <line x1="2" y1="17" x2="12" y2="22" />
+                <line x1="12" y1="22" x2="22" y2="17" />
+              </svg>
+            </span>
+          </button>
+          <button id="map-controls-fit" class="map-controls-fit" title="Mostra tutti">
+            <span class="map-btn-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="4" fill="rgba(52,152,219,0.18)"/>
+                <polyline points="4,10 4,4 10,4" />
+                <polyline points="14,4 20,4 20,10" />
+                <polyline points="20,14 20,20 14,20" />
+                <polyline points="10,20 4,20 4,14" />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
     <div class="modal-footer-bar" style="position:relative;">
       <div id="map-resize-handle-left" style="position:absolute;left:0;bottom:0;width:28px;height:22px;cursor:sw-resize;display:flex;align-items:flex-end;justify-content:flex-start;z-index:20;">
@@ -249,34 +277,6 @@ languageToggle.addEventListener('click', function() {
         document.removeEventListener('touchend', stopDrag);
       }
       </script>
-      <!-- Floating map controls: solo cambio layer e mostra tutti -->
-      <div id="map-controls-floating" class="map-controls-floating">
-        <div class="map-controls-stack">
-          <button id="map-controls-cycle" class="map-controls-cycle" title="Cambia layer">
-            <span class="map-btn-icon">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 22 7 12 12 2 7 12 2" fill="rgba(52,152,219,0.18)"/>
-                <polygon points="12 12 22 17 12 22 2 17 12 12" fill="rgba(52,152,219,0.32)"/>
-                <line x1="2" y1="7" x2="12" y2="12" />
-                <line x1="12" y1="12" x2="22" y2="7" />
-                <line x1="2" y1="17" x2="12" y2="22" />
-                <line x1="12" y1="22" x2="22" y2="17" />
-              </svg>
-            </span>
-          </button>
-          <button id="map-controls-fit" class="map-controls-fit" title="Mostra tutti">
-            <span class="map-btn-icon">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="4" y="4" width="16" height="16" rx="4" fill="rgba(52,152,219,0.18)"/>
-                <polyline points="4,10 4,4 10,4" />
-                <polyline points="14,4 20,4 20,10" />
-                <polyline points="20,14 20,20 14,20" />
-                <polyline points="10,20 4,20 4,14" />
-              </svg>
-            </span>
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
