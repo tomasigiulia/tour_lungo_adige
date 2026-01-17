@@ -110,6 +110,15 @@
   }
 
   function switchScene(scene) {
+            // Ricollega la linguetta toggle barra panorami
+            var bottomBarToggle = document.getElementById('bottomBarToggle');
+            var bottomBar = document.getElementById('bottomBar');
+            if (bottomBarToggle && bottomBar) {
+              bottomBarToggle.onclick = function() {
+                bottomBar.classList.toggle('collapsed');
+                setTimeout(function() { if (viewer && viewer.resize) viewer.resize(); }, 420);
+              };
+            }
         // Ricollega i tasti per cambiare panorama
         var thumbPrev = document.getElementById('thumbPrev');
         var thumbNext = document.getElementById('thumbNext');
@@ -674,11 +683,36 @@
 
   // Fullscreen logic
   if (screenfull.enabled) {
-    // Mostra solo su desktop
-    if(window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) {
-      document.getElementById('fullscreenToggle').style.display = 'none';
-      document.getElementById('vrToggle').style.display = 'inline-flex';
+    // Mostra solo su desktop, nascondi su mobile anche su Safari/iOS
+    var isMobile = window.matchMedia('(max-width: 700px), (pointer: coarse)').matches || /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    var fullscreenBtn = document.getElementById('fullscreenToggle');
+    var vrBtn = document.getElementById('vrToggle');
+    if(isMobile) {
+      if(fullscreenBtn) {
+        fullscreenBtn.style.display = 'none';
+        fullscreenBtn.style.visibility = 'hidden';
+        fullscreenBtn.style.opacity = '0';
+        fullscreenBtn.style.height = '0';
+      }
+      if(vrBtn) {
+        vrBtn.style.display = 'inline-flex';
+        vrBtn.style.visibility = 'visible';
+        vrBtn.style.opacity = '1';
+        vrBtn.style.height = 'auto';
+      }
     } else {
+      if(fullscreenBtn) {
+        fullscreenBtn.style.display = 'inline-flex';
+        fullscreenBtn.style.visibility = 'visible';
+        fullscreenBtn.style.opacity = '1';
+        fullscreenBtn.style.height = 'auto';
+      }
+      if(vrBtn) {
+        vrBtn.style.display = 'none';
+        vrBtn.style.visibility = 'hidden';
+        vrBtn.style.opacity = '0';
+        vrBtn.style.height = '0';
+      }
       fullscreenToggle.addEventListener('click', function() { screenfull.toggle(); });
       screenfull.on('change', function() {
          if(screenfull.isFullscreen) {

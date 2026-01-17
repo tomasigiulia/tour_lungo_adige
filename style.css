@@ -1,8 +1,28 @@
-.desktop-only { display: inline-flex !important; }
-.mobile-only { display: none !important; }
+.desktop-only {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+}
+.mobile-only {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+}
 @media (max-width: 700px), (pointer: coarse) {
-  .desktop-only { display: none !important; }
-  .mobile-only { display: inline-flex !important; }
+  .desktop-only {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+  }
+  .mobile-only {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+  }
 }
 .modal-body-map {
   position: relative;
@@ -350,8 +370,11 @@ a { color: inherit; text-decoration: none; }
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
-  width: 44px; height: 44px;
-  border-radius: 50%; /* Tondi */
+  width: 48px;
+  height: 48px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50% !important; /* Sempre tondo, anche se svg o contenuto cambia */
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
