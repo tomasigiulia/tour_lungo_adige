@@ -87,14 +87,7 @@ var APP_DATA = {
         "fov": 1.5707963267948966
       },
       "linkHotspots": [],
-      "infoHotspots": [
-        {
-          "yaw": 0.45568532598518274,
-          "pitch": 0.32316215508597246,
-          "title": "prova",
-          "text": "Text"
-        }
-      ]
+      "infoHotspots": []
     },
     {
       "id": "2-panorama3",
