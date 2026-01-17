@@ -1,3 +1,60 @@
+// --- MODALE INFO HOTSPOT MODERNO ---
+function showInfoHotspot(title, text, imageUrl) {
+  var existing = document.getElementById('info-modal');
+  if (!existing) {
+    var modal = document.createElement('div');
+    modal.id = 'info-modal';
+    modal.innerHTML = `
+      <div class="info-backdrop" id="info-backdrop"></div>
+      <div class="info-content" role="dialog" aria-modal="true" aria-labelledby="info-title">
+        <button class="info-close" id="info-close" aria-label="Chiudi">✕</button>
+        <div class="info-flex">
+          <div class="info-text">
+            <h3 id="info-title"></h3>
+            <div id="info-body"></div>
+          </div>
+          <div class="info-image" id="info-image" aria-hidden="true">
+            <img id="info-image-img" src="" alt="" />
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    var css = `
+      #info-modal { position: fixed; inset: 0; z-index: 20000; display: block; }
+      #info-modal .info-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+      #info-modal .info-content { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(760px, calc(100% - 40px)); max-height: calc(100vh - 80px); overflow-y: auto; background: linear-gradient(180deg,#0f0f12, #0b0c11); color: #fff; padding: 24px 24px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); font-family: 'Segoe UI', 'Inter', system-ui, sans-serif; }
+      #info-modal .info-close { position: absolute; right: 14px; top: 14px; background: transparent; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+      #info-modal .info-flex { display: flex; gap: 14px; align-items: flex-start; }
+      #info-modal .info-text { flex: 1 1 60%; }
+      #info-modal .info-image { flex: 0 0 180px; display: none; }
+      #info-modal .info-image img { width: 100%; height: auto; border-radius: 6px; display:block }
+      #info-modal h3 { margin: 2px 0 8px 0; font-size: 18px; letter-spacing: 0.3px; }
+      #info-modal #info-body { font-size: 14px; color: #ddd; white-space: pre-wrap; line-height: 1.6; letter-spacing: 0.5px; }
+    `;
+    var style = document.createElement('style'); style.appendChild(document.createTextNode(css)); document.head.appendChild(style);
+    modal.querySelector('#info-close').addEventListener('click', hideInfoHotspot);
+    modal.querySelector('#info-backdrop')?.addEventListener('click', hideInfoHotspot);
+    document.addEventListener('keydown', function onEsc(e){ if (e.key === 'Escape') hideInfoHotspot(); });
+  }
+  document.getElementById('info-title').innerText = title || '';
+  document.getElementById('info-body').innerText = text || '';
+  var imgWrap = document.getElementById('info-image');
+  var imgEl = document.getElementById('info-image-img');
+  if (imageUrl) {
+    imgEl.src = imageUrl;
+    imgEl.alt = title || '';
+    imgWrap.style.display = 'block';
+  } else {
+    imgEl.src = '';
+    imgWrap.style.display = 'none';
+  }
+}
+
+function hideInfoHotspot() {
+  var modal = document.getElementById('info-modal');
+  if (modal) modal.remove();
+}
 'use strict';
 
 (function() {
@@ -611,13 +668,18 @@
 
   function createInfoHotspotElement(hotspot) {
     var wrapper = document.createElement('div');
-    wrapper.classList.add('info-hotspot');
-    var icon = document.createElement('img');
-    icon.src = 'img/info.png'; // Assicurati di avere questa icona
-    wrapper.appendChild(icon);
-
-    wrapper.addEventListener('click', function() {
-      openCustomModal(hotspot);
+    wrapper.className = 'hotspot-info';
+    var span = document.createElement('span');
+    span.className = 'hotspot-plus';
+    span.textContent = 'i';
+    wrapper.appendChild(span);
+    wrapper.addEventListener('click', function(e) {
+      e.stopPropagation();
+      showInfoHotspot(
+        getBilingualText(hotspot.title),
+        getBilingualText(hotspot.text),
+        hotspot.image || null
+      );
     });
     return wrapper;
   }
