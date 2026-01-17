@@ -110,6 +110,23 @@
   }
 
   function switchScene(scene) {
+        // Ricollega i tasti per cambiare panorama
+        var thumbPrev = document.getElementById('thumbPrev');
+        var thumbNext = document.getElementById('thumbNext');
+        if (thumbPrev) {
+          thumbPrev.onclick = function() {
+            var idx = getCurrentThumbIndex();
+            var next = (idx - 1 + scenes.length) % scenes.length;
+            switchScene(scenes[next]);
+          };
+        }
+        if (thumbNext) {
+          thumbNext.onclick = function() {
+            var idx = getCurrentThumbIndex();
+            var next = (idx + 1) % scenes.length;
+            switchScene(scenes[next]);
+          };
+        }
     stopAutorotate();
     scene.view.setParameters(scene.data.initialViewParameters);
     scene.scene.switchTo();
@@ -117,6 +134,25 @@
     updateUI(scene);
     updateMapMarker(scene.data.id);
     openMapModal(); // Apri la mappa ad ogni cambio panorama
+
+    // Ricollega i controlli della barra panoramica dopo ogni cambio scena
+    var viewUpElement = document.querySelector('#viewUp');
+    var viewDownElement = document.querySelector('#viewDown');
+    var viewLeftElement = document.querySelector('#viewLeft');
+    var viewRightElement = document.querySelector('#viewRight');
+    var viewInElement = document.querySelector('#viewIn');
+    var viewOutElement = document.querySelector('#viewOut');
+    var controlsNav = viewer.controls();
+    // Deregistra prima i metodi precedenti
+    ['upElement','downElement','leftElement','rightElement','inElement','outElement'].forEach(function(name){
+      try { controlsNav.unregisterMethod(name); } catch(e){}
+    });
+    if (viewUpElement) controlsNav.registerMethod('upElement', new Marzipano.ElementPressControlMethod(viewUpElement, 'y', -0.7, 3), true);
+    if (viewDownElement) controlsNav.registerMethod('downElement', new Marzipano.ElementPressControlMethod(viewDownElement, 'y', 0.7, 3), true);
+    if (viewLeftElement) controlsNav.registerMethod('leftElement', new Marzipano.ElementPressControlMethod(viewLeftElement, 'x', -0.7, 3), true);
+    if (viewRightElement) controlsNav.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement, 'x', 0.7, 3), true);
+    if (viewInElement) controlsNav.registerMethod('inElement', new Marzipano.ElementPressControlMethod(viewInElement, 'zoom', -0.7, 3), true);
+    if (viewOutElement) controlsNav.registerMethod('outElement', new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom', 0.7, 3), true);
   }
 
   function updateUI(scene) {
