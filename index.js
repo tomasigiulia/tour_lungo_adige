@@ -102,15 +102,14 @@ function activateGyroLogic(btn) {
 }
 
 function handleDeviceOrientation(event) {
-  // Logica base: ruota la vista panoramica in base ai dati del giroscopio
-  // Adatta i valori per Marzipano RectilinearView
+  // Logica aggiornata dal progetto funzionante
   if (viewer && viewer.view && typeof viewer.view.setYaw === 'function' && typeof viewer.view.setPitch === 'function') {
-    // Yaw: rotazione orizzontale, Pitch: verticale
+    // Adattamento: la logica funzionante usa gamma per pitch e alpha per yaw
     var yaw = event.alpha ? event.alpha * Math.PI / 180 : 0;
-    var pitch = event.beta ? event.beta * Math.PI / 180 : 0;
-    // Adattamento: inverti/scala se necessario per la tua esperienza
+    var pitch = event.gamma ? event.gamma * Math.PI / 180 : 0;
+    // Inverti pitch se necessario (dipende da orientamento dispositivo)
     viewer.view.setYaw(yaw);
-    viewer.view.setPitch(pitch);
+    viewer.view.setPitch(-pitch);
   }
 }
 
