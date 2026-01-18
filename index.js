@@ -165,6 +165,16 @@ document.addEventListener('DOMContentLoaded', function() {
   var fullscreenToggle = document.querySelector('#fullscreenToggle');
   var languageToggle = document.querySelector('#languageToggle');
   var mapToggle = document.querySelector('#mapToggle');
+  var mapModal = document.getElementById('map-modal');
+  if (mapToggle && mapModal) {
+    mapToggle.addEventListener('click', function() {
+      if (mapModal.style.display === 'none' || mapModal.style.display === '') {
+        openMapModal();
+      } else {
+        closeMapModalWithHint();
+      }
+    });
+  }
 
   // Viewer options
   var viewerOpts = {
@@ -254,12 +264,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var modal = document.getElementById('map-modal');
     modal.classList.remove('visible');
     setTimeout(function() { modal.style.display = 'none'; }, 300);
-      // Removed the logic that applies the map-hint-ring class
-      // var mapToggle = document.getElementById('mapToggle');
-      // if(mapToggle) {
-      //   mapToggle.classList.add('hint-anim');
-      //   setTimeout(function(){ mapToggle.classList.remove('hint-anim'); }, 1200);
-      // }
+    var mapToggle = document.getElementById('mapToggle');
+    if(mapToggle) {
+      mapToggle.classList.add('hint-anim');
+      setTimeout(function(){ mapToggle.classList.remove('hint-anim'); }, 2400);
+    }
   }
 
   function switchScene(scene) {
@@ -735,11 +744,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var modal = document.getElementById('map-modal');
     modal.classList.remove('visible');
     setTimeout(function() { modal.style.display = 'none'; }, 300);
-    // Effetto anello sul tasto mappa
+    // Effetto animazione sul tasto mappa
     var mapBtn = document.getElementById('mapToggle');
     if(mapBtn) {
-      mapBtn.classList.add('map-hint-ring');
-      setTimeout(function(){ mapBtn.classList.remove('map-hint-ring'); }, 1400);
+      mapBtn.classList.add('hint-anim');
+      setTimeout(function(){ mapBtn.classList.remove('hint-anim'); }, 2400);
     }
   };
 

@@ -1,3 +1,13 @@
+/* Animazione evidenzia tasto mappa */
+#mapToggle.hint-anim {
+  animation: mapHintPulse 1.2s cubic-bezier(.4,1.6,.4,1) 2;
+  box-shadow: 0 0 0 6px rgba(52,152,219,0.25), 0 2px 10px rgba(52,152,219,0.18);
+}
+@keyframes mapHintPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52,152,219,0.25); }
+  50% { transform: scale(1.15); box-shadow: 0 0 0 12px rgba(52,152,219,0.18); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52,152,219,0.25); }
+}
 /* Frecce laterali sopra il panorama */
 .pano-arrow {
   position: absolute;
