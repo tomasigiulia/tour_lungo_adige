@@ -113,12 +113,9 @@ function isMobileScreen() {
 function showGyroButtonIfMobile() {
   const gyroBtn = document.getElementById('gyroToggle');
   if (!gyroBtn) return;
-  if (isMobileScreen()) {
-    // Let CSS handle mobile/desktop visibility. Only ensure the button exists.
-    gyroBtn.style.display = '';
-  } else {
-    gyroBtn.style.display = 'none';
-  }
+  // Disable gyro UI: remove/hidden on purpose (no gyroscope on smartphones)
+  // Keep fullscreen and other desktop controls untouched.
+  try { gyroBtn.style.display = 'none'; } catch(e){}
 }
 
 window.addEventListener('resize', showGyroButtonIfMobile);
@@ -225,16 +222,9 @@ function disableGyro() {
 
 document.addEventListener('DOMContentLoaded', function() {
   const gyroBtn = document.getElementById('gyroToggle');
+  // Gyro feature disabled for mobile devices per request: ensure it's off and hide button.
   if (gyroBtn) {
-    gyroBtn.addEventListener('click', function() {
-      if (!gyroActive) {
-        enableGyro();
-        gyroBtn.classList.add('active');
-      } else {
-        disableGyro();
-        gyroBtn.classList.remove('active');
-      }
-    });
+    try { disableGyro(); gyroBtn.classList.remove('active'); gyroBtn.style.display = 'none'; } catch(e){}
   }
 });
 // ...existing code...
@@ -1152,11 +1142,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fullscreenBtn.style.opacity = '0';
         fullscreenBtn.style.height = '0';
       }
-      if(vrBtn) {
-        vrBtn.style.display = 'inline-flex';
-        vrBtn.style.visibility = 'visible';
-        vrBtn.style.opacity = '1';
-        vrBtn.style.height = 'auto';
+      // Do not expose VR/Gyro toggle on mobile — disable to avoid conflicting controls
+      if (vrBtn) {
+        try { vrBtn.style.display = 'none'; vrBtn.style.visibility = 'hidden'; vrBtn.style.opacity = '0'; vrBtn.style.height = '0'; } catch(e){}
       }
     } else {
       if(fullscreenBtn) {
