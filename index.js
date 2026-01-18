@@ -58,6 +58,68 @@ function hideInfoHotspot() {
 'use strict';
 
 (function() {
+// --- MODALITÀ GIROSCOPIO MOBILE ---
+var gyroEnabled = false;
+function toggleGyro() {
+  var btn = document.getElementById('gyro-toggle');
+  if (!btn) return;
+  if (typeof DeviceOrientationEvent === 'undefined') {
+    alert('Questo dispositivo non supporta il giroscopio.');
+    return;
+  }
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          activateGyroLogic(btn);
+        } else {
+          alert('Permesso giroscopio negato. Abilita in Impostazioni > Privacy > Movimento e orientamento.');
+        }
+      })
+      .catch(err => {
+        console.warn('Errore richiesta permesso giroscopio:', err);
+      });
+  } else {
+    activateGyroLogic(btn);
+  }
+}
+
+function activateGyroLogic(btn) {
+  gyroEnabled = !gyroEnabled;
+  var svgGyroOff = '<svg viewBox="0 0 24 24"><path d="M6 9l2.5-4h7l2.5 4H6zM2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" /></svg>';
+  var svgGyroOn = '<svg viewBox="0 0 24 24"><path d="M2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" fill="currentColor" stroke="none"/></svg>';
+  if (gyroEnabled) {
+    window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true });
+    btn.innerHTML = svgGyroOn;
+    btn.classList.add('active');
+    btn.title = 'Modalità Giroscopio (ATTIVO)';
+  } else {
+    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+    btn.innerHTML = svgGyroOff;
+    btn.classList.remove('active');
+    btn.title = 'Modalità Giroscopio';
+  }
+}
+
+function handleDeviceOrientation(event) {
+  // Logica base: ruota la vista panoramica in base ai dati del giroscopio
+  // Adatta i valori per Marzipano RectilinearView
+  if (viewer && viewer.view && typeof viewer.view.setYaw === 'function' && typeof viewer.view.setPitch === 'function') {
+    // Yaw: rotazione orizzontale, Pitch: verticale
+    var yaw = event.alpha ? event.alpha * Math.PI / 180 : 0;
+    var pitch = event.beta ? event.beta * Math.PI / 180 : 0;
+    // Adattamento: inverti/scala se necessario per la tua esperienza
+    viewer.view.setYaw(yaw);
+    viewer.view.setPitch(pitch);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var gyroBtn = document.getElementById('gyro-toggle');
+  if (gyroBtn) {
+    gyroBtn.addEventListener('click', toggleGyro);
+  }
+});
       // Frecce laterali panorama
       var panoArrowLeft = document.getElementById('panoArrowLeft');
       var panoArrowRight = document.getElementById('panoArrowRight');
