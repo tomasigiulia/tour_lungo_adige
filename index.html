@@ -14,7 +14,7 @@
 
 <!-- Tasto lingua in alto a sinistra -->
 <body>
-<a href="javascript:void(0)" id="languageToggle" class="glass-btn lang-btn-simple" aria-label="Cambia Lingua">
+<a href="javascript:void(0)" id="languageToggle" class="glass-btn lang-btn-simple" aria-label="Cambia Lingua" title="Cambia la lingua dell’interfaccia" data-title-it="Cambia la lingua dell’interfaccia" data-title-en="Change interface language">
   <span id="lang-flag" class="lang-flag">🇮🇹</span>
   <span id="lang-label" class="lang-label">IT</span>
 </a>
@@ -31,13 +31,43 @@ languageToggle.addEventListener('click', function() {
     langFlag.textContent = '🇬🇧';
     document.body.classList.add('lang-en');
     document.body.classList.remove('lang-it');
+    aggiornaTooltipLingua('en');
   } else {
     currentLang = 'it';
     langLabel.textContent = 'IT';
     langFlag.textContent = '🇮🇹';
     document.body.classList.add('lang-it');
     document.body.classList.remove('lang-en');
+    aggiornaTooltipLingua('it');
   }
+});
+
+function aggiornaTooltipLingua(lang) {
+  // Pulsanti principali
+  document.getElementById('languageToggle').title = lang === 'it' ? document.getElementById('languageToggle').getAttribute('data-title-it') : document.getElementById('languageToggle').getAttribute('data-title-en');
+  document.getElementById('mapToggle').title = lang === 'it' ? 'Apri la mappa interattiva' : 'Open interactive map';
+  var btnLayer = document.getElementById('map-controls-cycle');
+  if (btnLayer) btnLayer.title = lang === 'it' ? 'Cambia layer' : 'Change layer';
+  var btnFit = document.getElementById('map-controls-fit');
+  if (btnFit) btnFit.title = lang === 'it' ? 'Mostra tutti' : 'Show all';
+  document.getElementById('autorotateToggle').title = lang === 'it' ? 'Attiva/disattiva rotazione automatica' : 'Enable/disable autorotation';
+  document.getElementById('fullscreenToggle').title = lang === 'it' ? 'Schermo intero' : 'Fullscreen mode';
+  document.getElementById('vrToggle').title = lang === 'it' ? 'Modalità visore VR/giroscopio' : 'VR/Gyroscope mode';
+  document.getElementById('panoArrowLeft').title = lang === 'it' ? 'Panorama precedente' : 'Previous panorama';
+  document.getElementById('panoArrowRight').title = lang === 'it' ? 'Panorama successivo' : 'Next panorama';
+  document.getElementById('viewLeft').title = lang === 'it' ? 'Sposta la vista a sinistra' : 'Move view left';
+  document.getElementById('viewRight').title = lang === 'it' ? 'Sposta la vista a destra' : 'Move view right';
+  document.getElementById('viewUp').title = lang === 'it' ? 'Sposta la vista in alto' : 'Move view up';
+  document.getElementById('viewDown').title = lang === 'it' ? 'Sposta la vista in basso' : 'Move view down';
+  document.getElementById('viewOut').title = lang === 'it' ? 'Riduci la vista (Zoom Out)' : 'Zoom out';
+  document.getElementById('viewIn').title = lang === 'it' ? 'Ingrandisci la vista (Zoom In)' : 'Zoom in';
+  document.getElementById('toggleThumbs').title = lang === 'it' ? 'Mostra/nascondi anteprime panorami' : 'Show/hide panorama thumbnails';
+  document.getElementById('thumbPrev').title = lang === 'it' ? 'Panorama precedente' : 'Previous panorama';
+  document.getElementById('thumbNext').title = lang === 'it' ? 'Panorama successivo' : 'Next panorama';
+}
+// Imposta tooltip iniziali
+document.addEventListener('DOMContentLoaded', function() {
+  aggiornaTooltipLingua(currentLang);
 });
 </script>
 <body>
