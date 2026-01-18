@@ -149,10 +149,20 @@ document.addEventListener('DOMContentLoaded', function() {
     var thumbsContainer = document.getElementById('thumbsContainer');
     var toggleThumbsBtn = document.getElementById('toggleThumbs');
     if (toggleThumbsBtn && thumbsContainer) {
+      var thumbPrev = document.getElementById('thumbPrev');
+      var thumbNext = document.getElementById('thumbNext');
+      function updateThumbArrows() {
+        var collapsed = thumbsContainer.classList.contains('collapsed');
+        if (thumbPrev) thumbPrev.style.display = collapsed ? 'none' : '';
+        if (thumbNext) thumbNext.style.display = collapsed ? 'none' : '';
+      }
       toggleThumbsBtn.addEventListener('click', function() {
         thumbsContainer.classList.toggle('collapsed');
         toggleThumbsBtn.classList.toggle('active');
+        updateThumbArrows();
       });
+      // Aggiorna all'avvio
+      updateThumbArrows();
     }
   var Marzipano = window.Marzipano;
   var screenfull = window.screenfull;
