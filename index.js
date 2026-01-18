@@ -58,65 +58,78 @@ function hideInfoHotspot() {
 'use strict';
 
 (function() {
-// --- MODALITÀ GIROSCOPIO MOBILE ---
-var gyroEnabled = false;
-var deviceOrientationControlMethod = null;
-function toggleGyro() {
-  var btn = document.getElementById('gyro-toggle');
-  if (!btn) return;
+document.addEventListener('DOMContentLoaded', function() {
+// --- GIROSCOPIO BASE MOBILE ---
+let gyroActive = false;
+let lastAlpha = 0, lastBeta = 0, lastGamma = 0;
+let deviceOrientationHandler = null;
+
+function isMobileScreen() {
+  return window.innerWidth <= 900 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
+
+function showGyroButtonIfMobile() {
+  const gyroBtn = document.getElementById('gyroToggle');
+  if (!gyroBtn) return;
+  if (isMobileScreen()) {
+    gyroBtn.style.display = 'inline-block';
+    const fsBtn = document.getElementById('fullscreenToggle');
+    if (fsBtn) fsBtn.style.display = 'none';
+  } else {
+    gyroBtn.style.display = 'none';
+    const fsBtn = document.getElementById('fullscreenToggle');
+    if (fsBtn) fsBtn.style.display = '';
+  }
+}
+
+window.addEventListener('resize', showGyroButtonIfMobile);
+document.addEventListener('DOMContentLoaded', showGyroButtonIfMobile);
+
+function enableGyro() {
+  if (gyroActive) return;
   if (typeof DeviceOrientationEvent === 'undefined') {
     alert('Questo dispositivo non supporta il giroscopio.');
     return;
   }
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission()
-      .then(permissionState => {
-        if (permissionState === 'granted') {
-          activateGyroLogic(btn);
-        } else {
-          alert('Permesso giroscopio negato. Abilita in Impostazioni > Privacy > Movimento e orientamento.');
-        }
-      })
-      .catch(err => {
-        console.warn('Errore richiesta permesso giroscopio:', err);
-      });
-  } else {
-    activateGyroLogic(btn);
+  function onOrientation(event) {
+    lastAlpha = event.alpha || 0;
+    lastBeta = event.beta || 0;
+    lastGamma = event.gamma || 0;
+    // Aggiorna la vista Marzipano se disponibile
+    if (window.viewer && window.viewer.view && typeof window.viewer.view.setYaw === 'function') {
+      // Semplice: usa alpha come yaw (rotazione orizzontale)
+      window.viewer.view.setYaw((lastAlpha * Math.PI) / 180);
+    }
   }
+  deviceOrientationHandler = onOrientation;
+  window.addEventListener('deviceorientation', deviceOrientationHandler);
+  gyroActive = true;
 }
 
-function activateGyroLogic(btn) {
-  gyroEnabled = !gyroEnabled;
-  var svgGyroOff = '<svg viewBox="0 0 24 24"><path d="M6 9l2.5-4h7l2.5 4H6zM2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" /></svg>';
-  var svgGyroOn = '<svg viewBox="0 0 24 24"><path d="M2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" fill="currentColor" stroke="none"/></svg>';
-
-  if (gyroEnabled) {
-    // ATTIVA: Usa il metodo nativo di Marzipano
-    if (!deviceOrientationControlMethod) {
-      deviceOrientationControlMethod = new Marzipano.DeviceOrientationControlMethod();
-    }
-    viewer.controls().enableMethod('deviceOrientation', deviceOrientationControlMethod);
-    btn.innerHTML = svgGyroOn;
-    btn.classList.add('active');
-  } else {
-    // DISATTIVA
-    if (deviceOrientationControlMethod) {
-      viewer.controls().disableMethod('deviceOrientation', deviceOrientationControlMethod);
-    }
-    btn.innerHTML = svgGyroOff;
-    btn.classList.remove('active');
+function disableGyro() {
+  if (!gyroActive) return;
+  if (deviceOrientationHandler) {
+    window.removeEventListener('deviceorientation', deviceOrientationHandler);
+    deviceOrientationHandler = null;
   }
-}
-
-function handleDeviceOrientation(event) {
-  // Non necessaria se usiamo Marzipano.DeviceOrientationControlMethod
+  gyroActive = false;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  var gyroBtn = document.getElementById('gyro-toggle');
+  const gyroBtn = document.getElementById('gyroToggle');
   if (gyroBtn) {
-    gyroBtn.addEventListener('click', toggleGyro);
+    gyroBtn.addEventListener('click', function() {
+      if (!gyroActive) {
+        enableGyro();
+        gyroBtn.classList.add('active');
+      } else {
+        disableGyro();
+        gyroBtn.classList.remove('active');
+      }
+    });
   }
+});
+// ...existing code...
 });
       // Frecce laterali panorama
       var panoArrowLeft = document.getElementById('panoArrowLeft');
@@ -897,40 +910,6 @@ document.addEventListener('DOMContentLoaded', function() {
            fullscreenToggle.querySelector('.icon-fs-on').style.display = 'block';
            fullscreenToggle.querySelector('.icon-fs-off').style.display = 'none';
          }
-      });
-    }
-    // Modalità visore: solo mobile, placeholder (da integrare con WebXR/VR se serve)
-    var vrToggle = document.getElementById('vrToggle');
-    if(vrToggle) {
-      vrToggle.addEventListener('click', async function() {
-        // Prova a richiedere permesso per DeviceOrientation su iOS
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-          try {
-            const response = await DeviceOrientationEvent.requestPermission();
-            if (response !== 'granted') {
-              alert('Per la modalità immersiva, consenti l\'accesso ai sensori di movimento.');
-              return;
-            }
-          } catch (e) {
-            alert('Permesso ai sensori negato.');
-            return;
-          }
-        }
-        // Prova a mettere in fullscreen
-        if (screenfull.enabled) {
-          screenfull.request();
-        }
-        // Attiva modalità "immersiva" (Cardboard): ruota la vista con il telefono
-        if (window.Marzipano && viewer && viewer.controls) {
-          try {
-            viewer.controls().enableMethod('deviceOrientation');
-          } catch(e) {
-            // fallback: mostra solo un messaggio
-            alert('Modalità immersiva attivata! Ruota il telefono per esplorare.');
-          }
-        } else {
-          alert('Modalità immersiva attivata! Ruota il telefono per esplorare.');
-        }
       });
     }
   }
