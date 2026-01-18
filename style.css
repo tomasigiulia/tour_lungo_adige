@@ -5,7 +5,19 @@
   z-index: 1 !important;
 }
 #languageToggle {
-  z-index: 100;
+  z-index: 1301; /* sopra #rightBar (1200) */
+  position: fixed; /* assicurati che resti fuori dal flusso */
+  top: calc(18px + env(safe-area-inset-top));
+  right: calc(18px + env(safe-area-inset-right));
+}
+
+/* Align language toggle with rightBar on small screens */
+@media (max-width:700px), (pointer: coarse) {
+  #languageToggle {
+    right: calc(12px + env(safe-area-inset-right));
+    top: calc(12px + env(safe-area-inset-top));
+    width: 44px; height: 44px;
+  }
 }
 /* Animazione evidenzia tasto mappa */
 #mapToggle.hint-anim {
@@ -20,7 +32,7 @@
 /* Frecce laterali sopra il panorama */
 .pano-arrow {
   position: absolute;
-  top: 50%;
+  top: calc(50% + 24px);
   transform: translateY(-50%);
   z-index: 20;
   width: 48px;
@@ -36,12 +48,29 @@
   opacity: 0.92;
 }
 .pano-arrow:hover {
-  background: rgba(52,152,219,0.85);
+  background: rgba(52,152,219,0.9);
   transform: translateY(-50%) scale(1.08);
 }
 .pano-arrow-left { left: 18px; }
 .pano-arrow-right { right: 18px; }
 .pano-arrow svg { width: 32px; height: 32px; }
+
+/* Muted / unobtrusive style for pano arrows when always visible */
+.pano-arrow {
+  opacity: 0.36; /* subdued */
+  background: rgba(20,24,28,0.26);
+  width: 44px;
+  height: 44px;
+  box-shadow: none;
+  border: 1px solid rgba(255,255,255,0.03);
+}
+.pano-arrow svg { width: 28px; height: 28px; stroke-width:1.6; }
+.pano-arrow:hover { opacity: 0.98; box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+
+/* Force arrows visible in case other rules hide them */
+.pano-arrow { display: flex !important; }
+/* Remove pano arrows entirely as requested */
+.pano-arrow { display: none !important; visibility: hidden !important; pointer-events: none !important; }
 #thumbsContainer.collapsed {
   max-height: 0 !important;
   overflow: hidden !important;
@@ -748,7 +777,7 @@ a { color: inherit; text-decoration: none; }
 
 .thumb-scroll {
   position: absolute;
-  top: 50%;
+  top: calc(50% + 24px);
   transform: translateY(-50%);
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
@@ -777,7 +806,7 @@ a { color: inherit; text-decoration: none; }
 .thumb-scroll.next { right: 8px; }
 
 @media (max-width: 600px) {
-  .thumb-scroll { width: 44px; height: 44px; bottom: 8px; }
+  .thumb-scroll { width: 44px; height: 44px; bottom: 12px; }
   .thumb-scroll.prev { left: 8px; }
   .thumb-scroll.next { right: 8px; }
 }
@@ -975,7 +1004,34 @@ a { color: inherit; text-decoration: none; }
     border-radius: 12px;
   }
 }
-  #rightBar { top: 75px; /* Sposta sotto topbar */ }
+/* Right bar: posizione fissa per evitare reflow e spostamenti su mobile */
+/* rightBar: immediately below the language toggle, aligned on the same right edge */
+#rightBar {
+  position: fixed;
+  top: calc(18px + env(safe-area-inset-top) + 56px); /* language button (48px) + 8px gap */
+  right: calc(18px + env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1300; /* just below language toggle */
+  pointer-events: auto;
+}
+
+/* Final overrides: ensure touch targets meet minimum size on small screens */
+@media (max-width: 700px), (pointer: coarse) {
+  .nav-btn, .glass-btn, .thumb-scroll { width: 44px !important; height: 44px !important; }
+  #languageToggle { width: 44px; height: 44px; }
+}
+
+@media (max-width:700px), (pointer: coarse) {
+  #rightBar { top: calc(72px + env(safe-area-inset-top)); right: 12px; }
+  .glass-btn { width: 48px; height: 48px; min-width: 44px; min-height: 44px; }
+}
+
+/* Respect safe area for bottom bar (avoid overlap with iPhone home indicator) */
+#bottomBar { bottom: calc(20px + env(safe-area-inset-bottom)); }
+@media (max-width: 600px) {
+  #bottomBar { bottom: calc(0px + env(safe-area-inset-bottom)); }
 }
 
 /* Pulsanti zoom mappa Leaflet custom */

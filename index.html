@@ -73,15 +73,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <body>
 
 <div id="pano"></div>
-<div class="pano-arrow pano-arrow-left" id="panoArrowLeft" title="Panorama precedente">
-  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-</div>
-<div class="pano-arrow pano-arrow-right" id="panoArrowRight" title="Panorama successivo">
-  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-</div>
-
-
-
 <div id="rightBar">
   <a href="javascript:void(0)" id="mapToggle" class="glass-btn" title="Mappa">
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -269,8 +260,8 @@ document.addEventListener('DOMContentLoaded', function() {
         newH = Math.max(140, startH + (y - startY));
         mapModal.style.width = newW + 'px';
         mapModal.style.height = newH + 'px';
-        // Fix Leaflet: forza il resize della mappa
-        if(window.mapMap && window.mapMap.invalidateSize) setTimeout(()=>window.mapMap.invalidateSize(), 10);
+        // Fix Leaflet: forza il resize della mappa (debounced)
+        if (window.debounceInvalidateSize) window.debounceInvalidateSize();
       }
       function stopResize() {
         resizing = false;
@@ -313,8 +304,8 @@ document.addEventListener('DOMContentLoaded', function() {
         mapModal.style.left = newLeft + 'px';
         mapModal.style.top = newTop + 'px';
         mapModal.style.margin = '0';
-        // Fix Leaflet: forza il resize della mappa
-        if(window.mapMap && window.mapMap.invalidateSize) setTimeout(()=>window.mapMap.invalidateSize(), 10);
+        // Fix Leaflet: forza il resize della mappa (debounced)
+        if (window.debounceInvalidateSize) window.debounceInvalidateSize();
       }
       function stopDrag() {
         dragging = false;

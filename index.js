@@ -31,6 +31,16 @@ function showInfoHotspot(title, text, imageUrl) {
       #info-modal .info-image img { width: 100%; height: auto; border-radius: 6px; display:block }
       #info-modal h3 { margin: 2px 0 8px 0; font-size: 18px; letter-spacing: 0.3px; }
       #info-modal #info-body { font-size: 14px; color: #ddd; white-space: pre-wrap; line-height: 1.6; letter-spacing: 0.5px; }
+
+      /* Responsive: stacked layout for small/portrait screens */
+      @media (max-width:700px), (orientation: portrait) {
+        #info-modal .info-content { width: calc(100% - 20px); padding: 14px; max-height: calc(100vh - 34px); }
+        #info-modal .info-flex { display: block; }
+        #info-modal .info-image { display: block; width: 100%; flex: none; margin-top: 12px; }
+        #info-modal .info-text { padding: 0; }
+        #info-modal #info-body { font-size: 15px; line-height: 1.5; }
+        #info-modal .info-close { right: 10px; top: 8px; }
+      }
     `;
     var style = document.createElement('style'); style.appendChild(document.createTextNode(css)); document.head.appendChild(style);
     modal.querySelector('#info-close').addEventListener('click', hideInfoHotspot);
@@ -38,7 +48,31 @@ function showInfoHotspot(title, text, imageUrl) {
     document.addEventListener('keydown', function onEsc(e){ if (e.key === 'Escape') hideInfoHotspot(); });
   }
   document.getElementById('info-title').innerText = title || '';
-  document.getElementById('info-body').innerText = text || '';
+  var infoBody = document.getElementById('info-body');
+  infoBody.innerText = text || '';
+  // Add read-more for long texts on small/portrait screens
+  try {
+    var maxLen = 280; // approx chars before truncation on mobile
+    if (window.innerWidth <= 700 && (text || '').length > maxLen) {
+      var shortText = text.slice(0, maxLen).trim() + '…';
+      infoBody.innerText = shortText;
+      var more = document.createElement('button');
+      more.className = 'info-readmore';
+      more.textContent = 'Leggi tutto';
+      more.style.marginTop = '8px';
+      more.style.background = 'transparent';
+      more.style.border = 'none';
+      more.style.color = '#4da6ff';
+      more.style.cursor = 'pointer';
+      more.addEventListener('click', function(){
+        infoBody.innerText = text;
+        more.remove();
+      });
+      // Attach if not already present
+      var wrap = infoBody.parentNode;
+      if (!wrap.querySelector('.info-readmore')) wrap.appendChild(more);
+    }
+  } catch(e) {}
   var imgWrap = document.getElementById('info-image');
   var imgEl = document.getElementById('info-image-img');
   if (imageUrl) {
@@ -57,12 +91,20 @@ function hideInfoHotspot() {
 }
 'use strict';
 
+// Expose helper globally: used in several places outside DOMContentLoaded
+window.isMobileScreen = function() {
+  return window.innerWidth <= 900 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+};
+'use strict';
+
 (function() {
 document.addEventListener('DOMContentLoaded', function() {
 // --- GIROSCOPIO BASE MOBILE ---
 let gyroActive = false;
 let lastAlpha = 0, lastBeta = 0, lastGamma = 0;
 let deviceOrientationHandler = null;
+  let lastYaw = 0;
+  let invalidateTimeout = null;
 
 function isMobileScreen() {
   return window.innerWidth <= 900 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
@@ -72,13 +114,10 @@ function showGyroButtonIfMobile() {
   const gyroBtn = document.getElementById('gyroToggle');
   if (!gyroBtn) return;
   if (isMobileScreen()) {
-    gyroBtn.style.display = 'inline-block';
-    const fsBtn = document.getElementById('fullscreenToggle');
-    if (fsBtn) fsBtn.style.display = 'none';
+    // Let CSS handle mobile/desktop visibility. Only ensure the button exists.
+    gyroBtn.style.display = '';
   } else {
     gyroBtn.style.display = 'none';
-    const fsBtn = document.getElementById('fullscreenToggle');
-    if (fsBtn) fsBtn.style.display = '';
   }
 }
 
@@ -92,19 +131,88 @@ function enableGyro() {
     return;
   }
   function onOrientation(event) {
+    // Prefer webkitCompassHeading when available (iOS). Otherwise use alpha.
+    var headingDeg = null;
+    if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+      headingDeg = event.webkitCompassHeading;
+    } else if (event.absolute === true && event.alpha !== null) {
+      headingDeg = event.alpha;
+    } else if (event.alpha !== null) {
+      headingDeg = event.alpha;
+    }
+
     lastAlpha = event.alpha || 0;
     lastBeta = event.beta || 0;
     lastGamma = event.gamma || 0;
-    // Aggiorna la vista Marzipano se disponibile
+
+    if (headingDeg === null) return;
+
+    // Convert degrees to radians yaw target
+    var targetYaw = (headingDeg * Math.PI) / 180;
+
+    // Smooth the yaw to reduce jitter (low-pass)
+    var smoothing = 0.12; // between 0 (no move) and 1 (immediate)
+    lastYaw = lastYaw + (targetYaw - lastYaw) * smoothing;
+
     if (window.viewer && window.viewer.view && typeof window.viewer.view.setYaw === 'function') {
-      // Semplice: usa alpha come yaw (rotazione orizzontale)
-      window.viewer.view.setYaw((lastAlpha * Math.PI) / 180);
+      try { window.viewer.view.setYaw(lastYaw); } catch(e) {}
     }
   }
-  deviceOrientationHandler = onOrientation;
-  window.addEventListener('deviceorientation', deviceOrientationHandler);
-  gyroActive = true;
+
+  function startListening() {
+    if (deviceOrientationHandler) return; // already listening
+    deviceOrientationHandler = onOrientation;
+    window.addEventListener('deviceorientation', deviceOrientationHandler);
+    gyroActive = true;
+  }
+
+  // iOS Safari requires explicit user permission via requestPermission()
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(function(response) {
+      if (response === 'granted') {
+        startListening();
+      } else {
+        showGyroDeniedMessage();
+      }
+    }).catch(function(err) {
+      console.warn('Errore richiesta permesso giroscopio:', err);
+      showGyroDeniedMessage();
+    });
+  } else {
+    // Non iOS / permissionless
+    startListening();
+  }
 }
+
+function showGyroDeniedMessage() {
+  if (document.getElementById('gyro-perm-msg')) return;
+  var d = document.createElement('div');
+  d.id = 'gyro-perm-msg';
+  d.style.position = 'fixed';
+  d.style.left = '50%';
+  d.style.bottom = '20px';
+  d.style.transform = 'translateX(-50%)';
+  d.style.background = 'rgba(0,0,0,0.8)';
+  d.style.color = '#fff';
+  d.style.padding = '10px 14px';
+  d.style.borderRadius = '8px';
+  d.style.zIndex = 99999;
+  d.style.fontSize = '13px';
+  d.style.transition = 'opacity 0.45s ease';
+  d.style.opacity = '1';
+  d.textContent = 'Permesso giroscopio negato — abilita "Motion & Orientation" nelle impostazioni del browser.';
+  document.body.appendChild(d);
+  setTimeout(function(){ d.style.opacity = '0'; d.addEventListener('transitionend', function(){ d.remove(); }); }, 4500);
+}
+
+function debounceInvalidateSize() {
+  if (!window.mapMap || typeof window.mapMap.invalidateSize !== 'function') return;
+  clearTimeout(invalidateTimeout);
+  invalidateTimeout = setTimeout(function(){ try { window.mapMap.invalidateSize(); } catch(e){} }, 120);
+}
+
+// Esponi la funzione debounced globalmente per gli script inline in index.html
+window.debounceInvalidateSize = debounceInvalidateSize;
 
 function disableGyro() {
   if (!gyroActive) return;
@@ -134,6 +242,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // Frecce laterali panorama
       var panoArrowLeft = document.getElementById('panoArrowLeft');
       var panoArrowRight = document.getElementById('panoArrowRight');
+      // When true, updateUI will avoid expanding the bottom/thumbnails bar for the next scene switch
+      window.suppressThumbOpen = window.suppressThumbOpen || false;
       function getCurrentThumbIndex() {
         var current = document.querySelector('.thumb.current');
         if (!current) return 0;
@@ -144,19 +254,71 @@ document.addEventListener('DOMContentLoaded', function() {
         return 0;
       }
       if (panoArrowLeft) {
-        panoArrowLeft.addEventListener('click', function() {
+        panoArrowLeft.addEventListener('click', function(e) {
+          if (e && e.stopPropagation) { e.stopPropagation(); e.preventDefault(); }
           var idx = getCurrentThumbIndex();
           var next = (idx - 1 + scenes.length) % scenes.length;
-          switchScene(scenes[next]);
+          // Prevent the bottom bar / thumbnails from auto-opening when navigating via pano arrows
+          window.suppressThumbOpen = true;
+          // Add a timed lock so transient clears don't re-enable expansion too early
+          try { window.suppressThumbOpenUntil = Date.now() + 800; } catch(e){}
+          try { switchScene(scenes[next]); } catch(e){console.warn('switchScene failed', e);}        
         });
       }
       if (panoArrowRight) {
-        panoArrowRight.addEventListener('click', function() {
+        panoArrowRight.addEventListener('click', function(e) {
+          if (e && e.stopPropagation) { e.stopPropagation(); e.preventDefault(); }
           var idx = getCurrentThumbIndex();
           var next = (idx + 1) % scenes.length;
-          switchScene(scenes[next]);
+          // Prevent the bottom bar / thumbnails from auto-opening when navigating via pano arrows
+          window.suppressThumbOpen = true;
+          try { window.suppressThumbOpenUntil = Date.now() + 800; } catch(e){}
+          try { switchScene(scenes[next]); } catch(e){console.warn('switchScene failed', e);}        
         });
       }
+      // Ensure pano arrows are always visible; JS no longer hides them — style controls prominence
+      function updatePanoArrowsVisibility() {
+        try {
+          var left = document.getElementById('panoArrowLeft');
+          var right = document.getElementById('panoArrowRight');
+          if (!left || !right) return;
+          left.style.display = '';
+          right.style.display = '';
+        } catch(e) { /* noop */ }
+      }
+
+      // Central helper to set/remove `expanded` class with logging and suppression checks
+      function setExpanded(el, on, name) {
+        try {
+          name = name || (el && el.id) || '(unknown)';
+          if (!el) return;
+          // If suppression requested and caller wants to open, enforce collapsed and log
+          if (on && window.suppressThumbOpen && (name === 'thumbsContainer' || name === 'bottomBar')) {
+            console.warn('SUPPRESS: prevented expanding', name, { time: new Date().toISOString(), suppress: !!window.suppressThumbOpen });
+            console.trace('suppress prevented expansion for ' + name);
+            // ensure collapsed state
+            if (!el.classList.contains('collapsed')) el.classList.add('collapsed');
+            if (el.classList.contains('expanded')) el.classList.remove('expanded');
+            return;
+          }
+          if (on) {
+            if (!el.classList.contains('expanded')) {
+              el.classList.add('expanded');
+              // If explicitly expanding, ensure collapsed class is removed
+              if (el.classList.contains('collapsed')) el.classList.remove('collapsed');
+              console.info('setExpanded: added expanded ->', name, { time: new Date().toISOString(), suppress: !!window.suppressThumbOpen });
+              console.trace('setExpanded called for ' + name);
+            }
+          } else {
+            if (el.classList.contains('expanded')) el.classList.remove('expanded');
+            // when collapsing, ensure collapsed class exists
+            if (!el.classList.contains('collapsed')) el.classList.add('collapsed');
+            console.info('setExpanded: removed expanded ->', name, { time: new Date().toISOString() });
+            console.trace('setCollapsed called for ' + name);
+          }
+        } catch (e) { console.warn('setExpanded error', e); }
+      }
+
     var thumbsContainer = document.getElementById('thumbsContainer');
     var toggleThumbsBtn = document.getElementById('toggleThumbs');
     if (toggleThumbsBtn && thumbsContainer) {
@@ -166,10 +328,16 @@ document.addEventListener('DOMContentLoaded', function() {
         var collapsed = thumbsContainer.classList.contains('collapsed');
         if (thumbPrev) thumbPrev.style.display = collapsed ? 'none' : '';
         if (thumbNext) thumbNext.style.display = collapsed ? 'none' : '';
+        // Ensure pano arrows follow the bottom bar state: only visible when bottom bar is collapsed
+        try { if (typeof updatePanoArrowsVisibility === 'function') updatePanoArrowsVisibility(); } catch(e){}
       }
       toggleThumbsBtn.addEventListener('click', function() {
         thumbsContainer.classList.toggle('collapsed');
         toggleThumbsBtn.classList.toggle('active');
+        // Sync expanded state and clear suppression when user manually toggles
+        var collapsedNow = thumbsContainer.classList.contains('collapsed');
+        setExpanded(thumbsContainer, !collapsedNow, 'thumbsContainer');
+        try { window.suppressThumbOpen = false; } catch(e){}
         updateThumbArrows();
       });
       // Aggiorna all'avvio
@@ -203,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   var viewer = new Marzipano.Viewer(panoElement, viewerOpts);
-  
+  window.viewer = viewer;
   // --- SCENE CREATION ---
   var scenes = data.scenes.map(function(data) {
     var urlPrefix = "tiles";
@@ -261,24 +429,62 @@ document.addEventListener('DOMContentLoaded', function() {
   function openMapModal() {
     var modal = document.getElementById('map-modal');
     modal.style.display = 'flex';
-    setTimeout(function() { modal.classList.add('visible'); }, 10);
-    if (!mapMap) {
-      initMap().then(function() {
-        var currentSceneId = scenes[0].data.id;
+    setTimeout(function() {
+      modal.classList.add('visible');
+      // When the modal finishes its opacity transition, force Leaflet to recalc size.
+      function onTrans(e) {
+        if (e && e.propertyName && e.propertyName !== 'opacity') return;
         try {
-          if (viewer && typeof viewer.scene === 'function') {
-            var active = viewer.scene();
-            for (var si = 0; si < scenes.length; si++) {
-              if (scenes[si].scene === active) { currentSceneId = scenes[si].data.id; break; }
-            }
+          if (window.debounceInvalidateSize) window.debounceInvalidateSize();
+          if (window.mapMap && typeof window.mapMap.invalidateSize === 'function') {
+            try { window.mapMap.invalidateSize(); } catch(e){}
           }
-        } catch(e) {}
-        updateMapMarker(currentSceneId);
-        try { setupMapControls(); } catch(e) {}
+        } catch (e) {}
+        modal.removeEventListener('transitionend', onTrans);
+      }
+      modal.addEventListener('transitionend', onTrans);
+      // Additional fallback: call invalidate in a double rAF to catch layout quirks
+      try {
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ if (window.debounceInvalidateSize) window.debounceInvalidateSize(); }); });
+      } catch(e) {}
+      // Retry invalidation a few times with delays to handle stubborn layout/paint timing
+      [50, 200, 600].forEach(function(ms){
+        setTimeout(function(){
+          try {
+            if (window.debounceInvalidateSize) window.debounceInvalidateSize();
+            if (window.mapMap && typeof window.mapMap.invalidateSize === 'function') {
+              try { window.mapMap.invalidateSize(true); } catch(e){}
+            }
+            // call internal resize handler if present
+            if (window.mapMap && typeof window.mapMap._onResize === 'function') {
+              try { window.mapMap._onResize(); } catch(e){}
+            }
+          } catch(e){}
+        }, ms);
       });
-    } else {
-      setTimeout(function(){ mapMap.invalidateSize(); }, 200);
-    }
+    }, 10);
+    // Initialize map only after the modal is visible to avoid creating Leaflet in a 0x0 container
+    setTimeout(function(){
+      if (!mapMap) {
+        initMap().then(function() {
+          var currentSceneId = scenes[0].data.id;
+          try {
+            if (viewer && typeof viewer.scene === 'function') {
+              var active = viewer.scene();
+              for (var si = 0; si < scenes.length; si++) {
+                if (scenes[si].scene === active) { currentSceneId = scenes[si].data.id; break; }
+              }
+            }
+          } catch(e) {}
+          updateMapMarker(currentSceneId);
+          try { setupMapControls(); } catch(e) {}
+          // extra invalidate after init
+          try { if (window.debounceInvalidateSize) window.debounceInvalidateSize(); } catch(e){}
+        }).catch(function(e){ console.warn('initMap failed', e); });
+      } else {
+        debounceInvalidateSize();
+      }
+    }, 40);
   }
 
   function closeMapModalWithHint() {
@@ -296,28 +502,29 @@ document.addEventListener('DOMContentLoaded', function() {
             // Ricollega la linguetta toggle barra panorami
             var bottomBarToggle = document.getElementById('bottomBarToggle');
             var bottomBar = document.getElementById('bottomBar');
-            if (bottomBarToggle && bottomBar) {
-              bottomBarToggle.onclick = function() {
-                bottomBar.classList.toggle('collapsed');
-                setTimeout(function() { if (viewer && viewer.resize) viewer.resize(); }, 420);
-              };
-            }
+                    if (bottomBarToggle && bottomBar && !bottomBarToggle.dataset.bound) {
+                        bottomBarToggle.addEventListener('click', function onBottomBarToggle() {
+                          bottomBar.classList.toggle('collapsed');
+                          var collapsedNow = bottomBar.classList.contains('collapsed');
+                          // Use helper to set expanded/collapsed (respects suppression and logs)
+                          setExpanded(bottomBar, !collapsedNow, 'bottomBar');
+                          // If user explicitly toggles the bar, clear any suppression flag
+                          try { window.suppressThumbOpen = false; } catch(e){}
+                          setTimeout(function() { try { if (viewer && viewer.resize) viewer.resize(); } catch(e){} }, 420);
+                          try { if (typeof updatePanoArrowsVisibility === 'function') updatePanoArrowsVisibility(); } catch(e){}
+                        });
+                      bottomBarToggle.dataset.bound = '1';
+                    }
         // Ricollega i tasti per cambiare panorama
         var thumbPrev = document.getElementById('thumbPrev');
         var thumbNext = document.getElementById('thumbNext');
-        if (thumbPrev) {
-          thumbPrev.onclick = function() {
-            var idx = getCurrentThumbIndex();
-            var next = (idx - 1 + scenes.length) % scenes.length;
-            switchScene(scenes[next]);
-          };
+        if (thumbPrev && !thumbPrev.dataset.bound) {
+          thumbPrev.addEventListener('click', function(){ var idx = getCurrentThumbIndex(); var next = (idx - 1 + scenes.length) % scenes.length; switchScene(scenes[next]); });
+          thumbPrev.dataset.bound = '1';
         }
-        if (thumbNext) {
-          thumbNext.onclick = function() {
-            var idx = getCurrentThumbIndex();
-            var next = (idx + 1) % scenes.length;
-            switchScene(scenes[next]);
-          };
+        if (thumbNext && !thumbNext.dataset.bound) {
+          thumbNext.addEventListener('click', function(){ var idx = getCurrentThumbIndex(); var next = (idx + 1) % scenes.length; switchScene(scenes[next]); });
+          thumbNext.dataset.bound = '1';
         }
     stopAutorotate();
     scene.view.setParameters(scene.data.initialViewParameters);
@@ -325,7 +532,6 @@ document.addEventListener('DOMContentLoaded', function() {
     startAutorotate();
     updateUI(scene);
     updateMapMarker(scene.data.id);
-    openMapModal(); // Apri la mappa ad ogni cambio panorama
 
     // Ricollega i controlli della barra panoramica dopo ogni cambio scena
     var viewUpElement = document.querySelector('#viewUp');
@@ -339,12 +545,14 @@ document.addEventListener('DOMContentLoaded', function() {
     ['upElement','downElement','leftElement','rightElement','inElement','outElement'].forEach(function(name){
       try { controlsNav.unregisterMethod(name); } catch(e){}
     });
-    if (viewUpElement) controlsNav.registerMethod('upElement', new Marzipano.ElementPressControlMethod(viewUpElement, 'y', -0.7, 3), true);
-    if (viewDownElement) controlsNav.registerMethod('downElement', new Marzipano.ElementPressControlMethod(viewDownElement, 'y', 0.7, 3), true);
-    if (viewLeftElement) controlsNav.registerMethod('leftElement', new Marzipano.ElementPressControlMethod(viewLeftElement, 'x', -0.7, 3), true);
-    if (viewRightElement) controlsNav.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement, 'x', 0.7, 3), true);
-    if (viewInElement) controlsNav.registerMethod('inElement', new Marzipano.ElementPressControlMethod(viewInElement, 'zoom', -0.7, 3), true);
-    if (viewOutElement) controlsNav.registerMethod('outElement', new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom', 0.7, 3), true);
+    try {
+      if (viewUpElement) controlsNav.registerMethod('upElement', new Marzipano.ElementPressControlMethod(viewUpElement, 'y', -0.7, 3), true);
+      if (viewDownElement) controlsNav.registerMethod('downElement', new Marzipano.ElementPressControlMethod(viewDownElement, 'y', 0.7, 3), true);
+      if (viewLeftElement) controlsNav.registerMethod('leftElement', new Marzipano.ElementPressControlMethod(viewLeftElement, 'x', -0.7, 3), true);
+      if (viewRightElement) controlsNav.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement, 'x', 0.7, 3), true);
+      if (viewInElement) controlsNav.registerMethod('inElement', new Marzipano.ElementPressControlMethod(viewInElement, 'zoom', -0.7, 3), true);
+      if (viewOutElement) controlsNav.registerMethod('outElement', new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom', 0.7, 3), true);
+    } catch(e) { console.warn('Error registering control methods', e); }
   }
 
   function updateUI(scene) {
@@ -369,15 +577,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ensure thumbs container allows the lifted thumb to be visible by toggling expanded class
     var thumbsContainerEl = document.getElementById('thumbsContainer');
     if (thumbsContainerEl) {
-      if (document.querySelector('.thumb.current')) thumbsContainerEl.classList.add('expanded');
-      else thumbsContainerEl.classList.remove('expanded');
+      if (document.querySelector('.thumb.current')) {
+          // Respect global suppress flag (set when navigating via pano arrows)
+        var suppressActive = !!window.suppressThumbOpen || (window.suppressThumbOpenUntil && Date.now() < window.suppressThumbOpenUntil);
+        if (suppressActive) {
+          // keep contracted and reset flag
+          setExpanded(thumbsContainerEl, false, 'thumbsContainer');
+        } else {
+          setExpanded(thumbsContainerEl, true, 'thumbsContainer');
+        }
+      } else {
+        setExpanded(thumbsContainerEl, false, 'thumbsContainer');
+      }
     }
     // Also toggle on the bottomBar so overflow is allowed at that level
     var bottomBarEl = document.getElementById('bottomBar');
     if (bottomBarEl) {
-      if (document.querySelector('.thumb.current')) bottomBarEl.classList.add('expanded');
-      else bottomBarEl.classList.remove('expanded');
+      if (document.querySelector('.thumb.current')) {
+        // If navigation was triggered by pano arrows, suppress auto-opening the thumbnails/bottom bar
+        var suppressActive2 = !!window.suppressThumbOpen || (window.suppressThumbOpenUntil && Date.now() < window.suppressThumbOpenUntil);
+        if (suppressActive2) {
+          // reset flag and skip expanding
+          setExpanded(bottomBarEl, false, 'bottomBar');
+          try { window.suppressThumbOpen = false; } catch(e){}
+          try { window.suppressThumbOpenUntil = 0; } catch(e){}
+        } else {
+          setExpanded(bottomBarEl, true, 'bottomBar');
+        }
+      } else {
+        setExpanded(bottomBarEl, false, 'bottomBar');
+      }
     }
+    // Ensure pano arrows visibility follows the bottom bar state
+    try { if (typeof updatePanoArrowsVisibility === 'function') updatePanoArrowsVisibility(); } catch(e){}
   }
 
   // --- MAP LOGIC (LEAFLET) ---
@@ -586,25 +818,17 @@ document.addEventListener('DOMContentLoaded', function() {
       mapMap = L.map('map-container').setView([coords[0].lat, coords[0].lng], 16);
       // Aggiungi barra di scala
       L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mapMap);
-
-      // Define base layers
-      baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      });
-      satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '© ESRI'
-      });
-      cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-        attribution: '© CARTO'
-      });
-
+      // Define base layers and add default layer
+      baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
+      satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© ESRI' });
+      cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', { attribution: '© CARTO' });
       layers = [baseLayer, satelliteLayer, cartoLayer];
       currentLayerIndex = 0;
-      layers[currentLayerIndex].addTo(mapMap);
+      try { layers[currentLayerIndex].addTo(mapMap); } catch(e) { console.warn('adding base layer failed', e); }
       var mapLayerNameEl = document.getElementById('map-layer-name');
       if (mapLayerNameEl) mapLayerNameEl.textContent = (currentLayerIndex === 0 ? 'OSM' : currentLayerIndex === 1 ? 'Satellite' : 'Carto');
 
-      // Crea icone personalizzate
+      // Create markers for each scene coordinate
       var createIcon = function(active) {
         var color = active ? '#3498db' : '#555';
         var scale = active ? 1.2 : 1;
@@ -621,22 +845,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
       coords.forEach(function(c, i) {
         if (i >= scenes.length) return;
-        var marker = L.marker([c.lat, c.lng], { icon: createIcon(i === 0) }).addTo(mapMap);
-        marker.on('click', function() {
-          switchScene(scenes[i]);
-          // La mappa resta aperta
-        });
-        // Attach popup with coordinates (mostra su hover)
-        if (c && typeof c.lat === 'number' && typeof c.lng === 'number') {
-          var popupContent = '<div style="font-size:13px;line-height:1.4;padding:4px 8px;">'
-            + '<b>' + scenes[i].data.name + '</b><br>'
-            + c.lat.toFixed(6) + ', ' + c.lng.toFixed(6)
-            + '</div>';
-          marker.bindTooltip(popupContent, {direction:'top',offset:[0,-32],opacity:0.95,className:'custom-marker-tooltip'});
-        }
-        marker._sceneId = scenes[i].data.id;
-        mapMarkers.push({ marker: marker, id: scenes[i].data.id });
+        try {
+          var marker = L.marker([c.lat, c.lng], { icon: createIcon(i === 0) }).addTo(mapMap);
+          marker.on('click', function() {
+            switchScene(scenes[i]);
+            try { if (typeof updatePanoArrowsVisibility === 'function') updatePanoArrowsVisibility(); } catch(e){}
+          });
+          if (c && typeof c.lat === 'number' && typeof c.lng === 'number') {
+            var popupContent = '<div style="font-size:13px;line-height:1.4;padding:4px 8px;">' +
+              '<b>' + scenes[i].data.name + '</b><br>' +
+              c.lat.toFixed(6) + ', ' + c.lng.toFixed(6) +
+              '</div>';
+            marker.bindTooltip(popupContent, { direction: 'top', offset: [0, -32], opacity: 0.95, className: 'custom-marker-tooltip' });
+          }
+          marker._sceneId = scenes[i].data.id;
+          mapMarkers.push({ marker: marker, id: scenes[i].data.id });
+        } catch(e) { console.warn('creating marker failed', e); }
       });
+
+      // Pano arrows removed: define noop helpers so other code may still call them safely
+      window.suppressThumbOpen = window.suppressThumbOpen || false;
+      function getCurrentThumbIndex() { var current = document.querySelector('.thumb.current'); if (!current) return 0; var id = current.getAttribute('data-id'); for (var i = 0; i < scenes.length; i++) { if (scenes[i].data.id === id) return i; } return 0; }
+      function updatePanoArrowsVisibility() { /* no-op: arrows removed */ }
     });
   }
 
@@ -745,20 +975,60 @@ document.addEventListener('DOMContentLoaded', function() {
   // Carica subito il primo panorama all'avvio e lascia la mappa sempre aperta
   window.addEventListener('DOMContentLoaded', function() {
     switchScene(scenes[0]);
-    var modal = document.getElementById('map-modal');
-    modal.style.display = 'flex';
-    setTimeout(function() { modal.classList.add('visible'); }, 10);
+    try { if (typeof updatePanoArrowsVisibility === 'function') updatePanoArrowsVisibility(); } catch(e){}
+    // Debug: observe bottomBar and thumbsContainer class changes to trace unexpected expansions
+    try {
+      var _bb = document.getElementById('bottomBar');
+      if (_bb && !window._bottomBarDebugObserver) {
+        var mo = new MutationObserver(function(records){
+          records.forEach(function(r){
+            if (r.attributeName === 'class') {
+              var prev = r.oldValue || '(none)';
+              var now = _bb.className || '(none)';
+              if (_bb.classList.contains('expanded')) {
+                console.warn('DEBUG: bottomBar gained expanded', { time: new Date().toISOString(), prev: prev, now: now });
+                console.trace('bottomBar expanded stack');
+              } else {
+                console.info('DEBUG: bottomBar class changed', { time: new Date().toISOString(), prev: prev, now: now });
+              }
+            }
+          });
+        });
+        mo.observe(_bb, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+        window._bottomBarDebugObserver = mo;
+      }
+      var _tc = document.getElementById('thumbsContainer');
+      if (_tc && !window._thumbsContainerDebugObserver) {
+        var mo2 = new MutationObserver(function(records){
+          records.forEach(function(r){
+            if (r.attributeName === 'class') {
+              var prev = r.oldValue || '(none)';
+              var now = _tc.className || '(none)';
+              if (_tc.classList.contains('expanded')) {
+                console.warn('DEBUG: thumbsContainer gained expanded', { time: new Date().toISOString(), prev: prev, now: now });
+                console.trace('thumbsContainer expanded stack');
+              } else {
+                console.info('DEBUG: thumbsContainer class changed', { time: new Date().toISOString(), prev: prev, now: now });
+              }
+            }
+          });
+        });
+        mo2.observe(_tc, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+        window._thumbsContainerDebugObserver = mo2;
+      }
+    } catch(e) { console.warn('Debug observer setup failed', e); }
+    // Re-enable automatic map opening on desktop: open at startup
+    try { if (!isMobileScreen()) openMapModal(); } catch(e) {}
   });
 
-
-  // Apri la mappa ad ogni cambio panorama e assicurati che resti aperta
-  var origSwitchScene = switchScene;
-  switchScene = function(scene) {
-    origSwitchScene(scene);
-    var modal = document.getElementById('map-modal');
-    modal.style.display = 'flex';
-    setTimeout(function() { modal.classList.add('visible'); }, 10);
-  };
+  // Re-open the map on every scene change on desktop (if desktop, always open)
+  try {
+    var origSwitchScene = switchScene;
+    switchScene = function(scene) {
+      origSwitchScene(scene);
+      try { if (!isMobileScreen()) openMapModal(); } catch(e) {}
+    };
+  } catch(e) {}
 
   window.closeMapModal = function() {
     // Chiudi la mappa, ma al prossimo cambio scena si riaprirà
@@ -922,13 +1192,15 @@ document.addEventListener('DOMContentLoaded', function() {
       var en = languageToggle.querySelector('.lang-en');
       languageToggle.classList.remove('it', 'en');
       languageToggle.classList.add(lang);
-      if (lang === 'it') {
-        it.classList.add('active');
-        en.classList.remove('active');
-      } else {
-        en.classList.add('active');
-        it.classList.remove('active');
-      }
+      if (it) { if (lang === 'it') it.classList.add('active'); else it.classList.remove('active'); }
+      if (en) { if (lang === 'en') en.classList.add('active'); else en.classList.remove('active'); }
+      // Also update simple label/flag if present
+      try {
+        var lbl = document.getElementById('lang-label');
+        var flg = document.getElementById('lang-flag');
+        if (lbl) lbl.textContent = (lang === 'it') ? 'IT' : 'EN';
+        if (flg) flg.textContent = (lang === 'it') ? '🇮🇹' : '🇬🇧';
+      } catch(e) {}
     }
     languageToggle.addEventListener('click', function(e) {
       var lang = localStorage.getItem('tourLanguage') || 'it';
@@ -980,11 +1252,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- TOGGLE BAR LOGIC ---
   if (bottomBarToggle && bottomBar) {
-    bottomBarToggle.addEventListener('click', function() {
+    bottomBarToggle.addEventListener('click', function onBottomBarToggleLocal(e) {
+      if (e && e.stopPropagation) { e.stopPropagation(); e.preventDefault(); }
       bottomBar.classList.toggle('collapsed');
+      var collapsedNow = bottomBar.classList.contains('collapsed');
+      setExpanded(bottomBar, !collapsedNow, 'bottomBar');
+      try { window.suppressThumbOpen = false; } catch(e){}
       // Forza un resize del viewer se la dimensione della canvas cambia
       setTimeout(function() { if (viewer && viewer.resize) viewer.resize(); }, 420);
+      try { if (typeof updatePanoArrowsVisibility === 'function') updatePanoArrowsVisibility(); } catch(e){}
     });
+    // mark as bound so other attachers (e.g., switchScene) won't add duplicates
+    try { bottomBarToggle.dataset.bound = '1'; } catch(e){}
   }
 
   // --- THUMBNAIL SIDE ARROWS (prev/next) ---
@@ -999,21 +1278,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (scenes[i].data.id === id) return i;
     }
     return 0;
-  }
-
-  if (thumbPrev) {
-    thumbPrev.addEventListener('click', function() {
-      var idx = getCurrentThumbIndex();
-      var next = (idx - 1 + scenes.length) % scenes.length;
-      switchScene(scenes[next]);
-    });
-  }
-  if (thumbNext) {
-    thumbNext.addEventListener('click', function() {
-      var idx = getCurrentThumbIndex();
-      var next = (idx + 1) % scenes.length;
-      switchScene(scenes[next]);
-    });
   }
 
   // Initial setup
