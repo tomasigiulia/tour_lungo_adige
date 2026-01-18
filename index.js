@@ -60,6 +60,7 @@ function hideInfoHotspot() {
 (function() {
 // --- MODALITÀ GIROSCOPIO MOBILE ---
 var gyroEnabled = false;
+var deviceOrientationControlMethod = null;
 function toggleGyro() {
   var btn = document.getElementById('gyro-toggle');
   if (!btn) return;
@@ -88,29 +89,27 @@ function activateGyroLogic(btn) {
   gyroEnabled = !gyroEnabled;
   var svgGyroOff = '<svg viewBox="0 0 24 24"><path d="M6 9l2.5-4h7l2.5 4H6zM2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" /></svg>';
   var svgGyroOn = '<svg viewBox="0 0 24 24"><path d="M2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" fill="currentColor" stroke="none"/></svg>';
+
   if (gyroEnabled) {
-    window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true });
+    // ATTIVA: Usa il metodo nativo di Marzipano
+    if (!deviceOrientationControlMethod) {
+      deviceOrientationControlMethod = new Marzipano.DeviceOrientationControlMethod();
+    }
+    viewer.controls().enableMethod('deviceOrientation', deviceOrientationControlMethod);
     btn.innerHTML = svgGyroOn;
     btn.classList.add('active');
-    btn.title = 'Modalità Giroscopio (ATTIVO)';
   } else {
-    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+    // DISATTIVA
+    if (deviceOrientationControlMethod) {
+      viewer.controls().disableMethod('deviceOrientation', deviceOrientationControlMethod);
+    }
     btn.innerHTML = svgGyroOff;
     btn.classList.remove('active');
-    btn.title = 'Modalità Giroscopio';
   }
 }
 
 function handleDeviceOrientation(event) {
-  // Logica aggiornata dal progetto funzionante
-  if (viewer && viewer.view && typeof viewer.view.setYaw === 'function' && typeof viewer.view.setPitch === 'function') {
-    // Adattamento: la logica funzionante usa gamma per pitch e alpha per yaw
-    var yaw = event.alpha ? event.alpha * Math.PI / 180 : 0;
-    var pitch = event.gamma ? event.gamma * Math.PI / 180 : 0;
-    // Inverti pitch se necessario (dipende da orientamento dispositivo)
-    viewer.view.setYaw(yaw);
-    viewer.view.setPitch(-pitch);
-  }
+  // Non necessaria se usiamo Marzipano.DeviceOrientationControlMethod
 }
 
 document.addEventListener('DOMContentLoaded', function() {
