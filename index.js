@@ -99,169 +99,94 @@ window.isMobileScreen = function() {
 
 (function() {
 document.addEventListener('DOMContentLoaded', function() {
-// --- GIROSCOPIO BASE MOBILE ---
-let gyroActive = false;
-let lastAlpha = 0, lastBeta = 0, lastGamma = 0;
-let deviceOrientationHandler = null;
-  let lastYaw = 0;
-  let invalidateTimeout = null;
+  // --- GIROSCOPIO (portato dall'esempio funzionante) ---
+  var gyroEnabled = false;
+  // Usa l'ID presente in markup: `gyroToggle`
+  function toggleGyro() {
+    var btn = document.getElementById('gyroToggle');
+    if (!btn) return;
 
-function isMobileScreen() {
-  return window.innerWidth <= 900 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-}
-
-function showGyroButtonIfMobile() {
-  const gyroBtn = document.getElementById('gyroToggle');
-  if (!gyroBtn) return;
-  // Show gyro button only on mobile devices that support DeviceOrientation
-  var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
-    try {
-    if (isMobileScreen() && supported) {
-      // Force visible as inline-flex so it shows even when CSS media-query threshold differs
-      gyroBtn.style.display = 'inline-flex';
-    } else {
-      gyroBtn.style.display = 'none';
-      try { disableGyro(); gyroBtn.classList.remove('active'); } catch(e){}
-    }
-  } catch(e) { gyroBtn.style.display = 'none'; }
-}
-
-window.addEventListener('resize', showGyroButtonIfMobile);
-document.addEventListener('DOMContentLoaded', showGyroButtonIfMobile);
-
-function enableGyro() {
-  if (gyroActive) return;
-  if (typeof DeviceOrientationEvent === 'undefined') {
-    alert('Questo dispositivo non supporta il giroscopio.');
-    return;
-  }
-  function onOrientation(event) {
-    // Prefer webkitCompassHeading when available (iOS). Otherwise use alpha.
-    var headingDeg = null;
-    if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
-      headingDeg = event.webkitCompassHeading;
-    } else if (event.absolute === true && event.alpha !== null) {
-      headingDeg = event.alpha;
-    } else if (event.alpha !== null) {
-      headingDeg = event.alpha;
+    if (typeof DeviceOrientationEvent === 'undefined') {
+      alert('Questo dispositivo non supporta il giroscopio.');
+      return;
     }
 
-    lastAlpha = event.alpha || 0;
-    lastBeta = event.beta || 0;
-    lastGamma = event.gamma || 0;
-
-    if (headingDeg === null) return;
-
-    // Convert degrees to radians yaw target
-    var targetYaw = (headingDeg * Math.PI) / 180;
-
-    // Smooth the yaw to reduce jitter (low-pass)
-    var smoothing = 0.12; // between 0 (no move) and 1 (immediate)
-    lastYaw = lastYaw + (targetYaw - lastYaw) * smoothing;
-
-    if (window.viewer) {
-      try {
-        var currentScene = window.viewer.scene && window.viewer.scene();
-        if (currentScene) {
-          var currentView = currentScene.view && currentScene.view();
-          if (currentView && typeof currentView.setYaw === 'function') {
-            try { currentView.setYaw(lastYaw); } catch(e) {}
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then(function(permissionState) {
+          if (permissionState === 'granted') {
+            activateGyroLogic(btn);
+          } else {
+            alert('Permesso giroscopio negato. Abilita in Impostazioni > Privacy > Movimento e orientamento.');
           }
-        }
-      } catch(e) { /* safe fallback if viewer API differs */ }
+        })
+        .catch(function(err) { console.warn('Errore richiesta permesso giroscopio:', err); });
+    } else {
+      activateGyroLogic(btn);
     }
   }
 
-  function startListening() {
-    if (deviceOrientationHandler) return; // already listening
-    deviceOrientationHandler = onOrientation;
-    window.addEventListener('deviceorientation', deviceOrientationHandler);
-    gyroActive = true;
+  function activateGyroLogic(btn) {
+    gyroEnabled = !gyroEnabled;
+
+    var svgGyroOff = '<svg viewBox="0 0 24 24"><path d="M6 9l2.5-4h7l2.5 4H6zM2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" /></svg>';
+    var svgGyroOn = '<svg viewBox="0 0 24 24"><path d="M2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" fill="currentColor" stroke="none"/></svg>';
+
+    if (gyroEnabled) {
+      console.log('📱 Modalità Giroscopio attivata');
+      stopAutoRotation && stopAutoRotation();
+
+      try { window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true }); } catch(e){ window.addEventListener('deviceorientation', handleDeviceOrientation); }
+
+      btn.innerHTML = svgGyroOn;
+      btn.classList.add('active');
+      btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio') + ' (ATTIVO)';
+    } else {
+      console.log('📱 Modalità Giroscopio disattivata');
+      window.removeEventListener('deviceorientation', handleDeviceOrientation);
+
+      try { btn.innerHTML = svgGyroOff; } catch(e){}
+      btn.classList.remove('active');
+      btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio');
+    }
   }
 
-  // iOS Safari requires explicit user permission via requestPermission()
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(function(response) {
-      if (response === 'granted') {
-        startListening();
-      } else {
-        showGyroDeniedMessage();
+  function handleDeviceOrientation(event) {
+    if (!gyroEnabled || !window.viewer) return;
+    try {
+      var alpha = (event.alpha || 0) * Math.PI / 180;
+      var beta = (event.beta || 0) * Math.PI / 180;
+      var yaw = -alpha;
+      var pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, -beta));
+
+      // Usa la view attiva del viewer
+      var currentScene = window.viewer && typeof window.viewer.scene === 'function' ? window.viewer.scene() : null;
+      var view = currentScene && typeof currentScene.view === 'function' ? currentScene.view() : null;
+      if (view && typeof view.setParameters === 'function') {
+        view.setParameters({ yaw: yaw, pitch: pitch }, { transitionDuration: 0 });
       }
-    }).catch(function(err) {
-      console.warn('Errore richiesta permesso giroscopio:', err);
-      showGyroDeniedMessage();
-    });
-  } else {
-    // Non iOS / permissionless
-    startListening();
+    } catch(e) { console.warn('Errore in handleDeviceOrientation:', e); }
   }
-}
 
-function showGyroDeniedMessage() {
-  if (document.getElementById('gyro-perm-msg')) return;
-  var d = document.createElement('div');
-  d.id = 'gyro-perm-msg';
-  d.style.position = 'fixed';
-  d.style.left = '50%';
-  d.style.bottom = '20px';
-  d.style.transform = 'translateX(-50%)';
-  d.style.background = 'rgba(0,0,0,0.8)';
-  d.style.color = '#fff';
-  d.style.padding = '10px 14px';
-  d.style.borderRadius = '8px';
-  d.style.zIndex = 99999;
-  d.style.fontSize = '13px';
-  d.style.transition = 'opacity 0.45s ease';
-  d.style.opacity = '1';
-  d.textContent = 'Permesso giroscopio negato — abilita "Motion & Orientation" nelle impostazioni del browser.';
-  document.body.appendChild(d);
-  setTimeout(function(){ d.style.opacity = '0'; d.addEventListener('transitionend', function(){ d.remove(); }); }, 4500);
-}
-
-function debounceInvalidateSize() {
-  if (!window.mapMap || typeof window.mapMap.invalidateSize !== 'function') return;
-  clearTimeout(invalidateTimeout);
-  invalidateTimeout = setTimeout(function(){ try { window.mapMap.invalidateSize(); } catch(e){} }, 120);
-}
-
-// Esponi la funzione debounced globalmente per gli script inline in index.html
-window.debounceInvalidateSize = debounceInvalidateSize;
-
-function disableGyro() {
-  if (!gyroActive) return;
-  if (deviceOrientationHandler) {
-    window.removeEventListener('deviceorientation', deviceOrientationHandler);
-    deviceOrientationHandler = null;
-  }
-  gyroActive = false;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  const gyroBtn = document.getElementById('gyroToggle');
-  if (!gyroBtn) return;
-  var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
-  if (isMobileScreen() && supported) {
-  gyroBtn.style.display = 'inline-flex';
-    // attach toggle handler (guard to avoid double attach)
-    if (!gyroBtn.dataset.bound) {
-      gyroBtn.addEventListener('click', function(e) {
-        e && e.preventDefault && e.preventDefault();
-        if (!gyroActive) {
-          enableGyro();
-          gyroBtn.classList.add('active');
-        } else {
-          disableGyro();
-          gyroBtn.classList.remove('active');
-        }
-      });
-      gyroBtn.dataset.bound = '1';
+  // Mostra/nascondi il bottone giroscopio in base al device
+  (function initGyroButton() {
+    var btn = document.getElementById('gyroToggle');
+    if (!btn) return;
+    var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
+    var shouldShow = (typeof detectDeviceType === 'function' ? isDeviceMobile : (window.innerWidth <= 900 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)));
+    if (shouldShow && supported) {
+      btn.style.display = 'inline-flex';
+      if (!btn.dataset.bound) {
+        btn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); toggleGyro(); });
+        btn.dataset.bound = '1';
+      }
+    } else {
+      try { window.removeEventListener('deviceorientation', handleDeviceOrientation); btn.style.display = 'none'; btn.classList.remove('active'); } catch(e){}
     }
-  } else {
-    try { disableGyro(); gyroBtn.classList.remove('active'); gyroBtn.style.display = 'none'; } catch(e){}
-  }
+  })();
+  // --- fine giroscopio ---
 });
 // ...existing code...
-});
       // Frecce laterali panorama
       var panoArrowLeft = document.getElementById('panoArrowLeft');
       var panoArrowRight = document.getElementById('panoArrowRight');
