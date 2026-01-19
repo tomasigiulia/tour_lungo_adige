@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (view.getUint16(0) !== 0xFFD8) return null;
         var offset = 2;
        
-        while (offset < length) {
+        while (offset < view.byteLength) {
           var marker = view.getUint16(offset);
           if (marker === 0xFFD9) break; // EOI
           var size = view.getUint16(offset + 2);
@@ -778,14 +778,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Build coords array from preview images; fall back to APP_DATA.coordinates or defaults
+
+    // Recupro dati da APP_DATA
     var appCoords = (window.APP_DATA && window.APP_DATA.coordinates) || null;
+
     var promises = scenes.map(function(s, i) {
+      // 1. PRIMA controlliamo se abbiamo già i dati in APP_DATA (data.js)
+      // Se ci sono, restituiamo subito una promessa risolta (velocità istantanea)
+      if (appCoords && appCoords[i] && typeof appCoords[i].lat === 'number' && typeof appCoords[i].lng === 'number') {
+        return Promise.resolve({
+          coords: appCoords[i],
+          source: 'app_data (fast)'
+        });
+      }
+
+      // 2. SOLO SE MANCANO, proviamo a scaricare l'immagine e leggere l'EXIF (lento)
       var url = 'tiles/' + s.data.id + '/preview.jpg';
       return getGpsDataEXIF(url).then(function(gps) {
         if (gps) return { coords: gps, source: 'exif' };
+
+        // Tentativo di fallback con il parser binario
         return getImageGPS(url).then(function(gps2) {
           if (gps2) return { coords: gps2, source: 'dataview' };
-          if (appCoords && appCoords[i]) return { coords: appCoords[i], source: 'app_data' };
+
+          // Se fallisce tutto, nessun dato
           return { coords: null, source: 'fallback' };
         });
       });
