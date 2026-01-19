@@ -1,3 +1,13 @@
+// Aggiunta debounceInvalidateSize per fix dimensionamento mappa
+var _debounceTimer;
+window.debounceInvalidateSize = function() {
+  clearTimeout(_debounceTimer);
+  _debounceTimer = setTimeout(function() {
+    if (window.mapMap && typeof window.mapMap.invalidateSize === 'function') {
+      window.mapMap.invalidateSize();
+    }
+  }, 100);
+};
 // --- MODALE INFO HOTSPOT MODERNO ---
 function showInfoHotspot(title, text, imageUrl) {
   var existing = document.getElementById('info-modal');
@@ -250,15 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var panoArrowRight = document.getElementById('panoArrowRight');
       // When true, updateUI will avoid expanding the bottom/thumbnails bar for the next scene switch
       window.suppressThumbOpen = window.suppressThumbOpen || false;
-      function getCurrentThumbIndex() {
-        var current = document.querySelector('.thumb.current');
-        if (!current) return 0;
-        var id = current.getAttribute('data-id');
-        for (var i = 0; i < scenes.length; i++) {
-          if (scenes[i].data.id === id) return i;
-        }
-        return 0;
-      }
+      // ...existing code...
       if (panoArrowLeft) {
         panoArrowLeft.addEventListener('click', function(e) {
           if (e && e.stopPropagation) { e.stopPropagation(); e.preventDefault(); }
@@ -473,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 10);
     // Initialize map only after the modal is visible to avoid creating Leaflet in a 0x0 container
     setTimeout(function(){
-      if (!mapMap) {
+      if (!window.mapMap) {
         initMap().then(function() {
           var currentSceneId = scenes[0].data.id;
           try {
@@ -621,12 +623,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // --- MAP LOGIC (LEAFLET) ---
-  var mapMap = null;
+  window.mapMap = null;
   var mapMarkers = [];
   var baseLayer, satelliteLayer, cartoLayer, layers = [];
   var currentLayerIndex = 0;
   function initMap() {
-    if (mapMap) return Promise.resolve(); // Già inizializzata
+    if (window.mapMap) return Promise.resolve(); // Già inizializzata
 
     // Helper: parse EXIF GPS from JPEG ArrayBuffer (returns {lat,lng} or null)
     function getImageGPS(url) {
@@ -839,7 +841,8 @@ document.addEventListener('DOMContentLoaded', function() {
       console.groupEnd();
 
 
-      mapMap = L.map('map-container').setView([coords[0].lat, coords[0].lng], 16);
+      window.mapMap = L.map('map-container').setView([coords[0].lat, coords[0].lng], 16);
+      var mapMap = window.mapMap;
       // Aggiungi barra di scala
       L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mapMap);
       // Define base layers and add default layer
@@ -889,7 +892,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Pano arrows removed: define noop helpers so other code may still call them safely
       window.suppressThumbOpen = window.suppressThumbOpen || false;
-      function getCurrentThumbIndex() { var current = document.querySelector('.thumb.current'); if (!current) return 0; var id = current.getAttribute('data-id'); for (var i = 0; i < scenes.length; i++) { if (scenes[i].data.id === id) return i; } return 0; }
+      // ...existing code...
       function updatePanoArrowsVisibility() { /* no-op: arrows removed */ }
     });
   }
@@ -1185,11 +1188,12 @@ document.addEventListener('DOMContentLoaded', function() {
         fullscreenBtn.style.opacity = '1';
         fullscreenBtn.style.height = 'auto';
       }
-      if(gyroBtn) {
-        gyroBtn.style.display = 'none';
-        gyroBtn.style.visibility = 'hidden';
-        gyroBtn.style.opacity = '0';
-        gyroBtn.style.height = '0';
+      var gyroBtnElement = document.getElementById('gyroToggle');
+      if(gyroBtnElement) {
+        gyroBtnElement.style.display = 'none';
+        gyroBtnElement.style.visibility = 'hidden';
+        gyroBtnElement.style.opacity = '0';
+        gyroBtnElement.style.height = '0';
       }
       fullscreenToggle.addEventListener('click', function() { screenfull.toggle(); });
       screenfull.on('change', function() {
