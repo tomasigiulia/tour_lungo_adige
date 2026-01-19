@@ -328,6 +328,13 @@
   font-size: 18px;
   margin-right: 2px;
 }
+/* If flag is an image, constrain its size */
+.lang-flag[src],
+.lang-flag img {
+  width: 20px;
+  height: auto;
+  display: block;
+}
 /* --- LANGUAGE BUTTON MODERN --- */
 .lang-btn-modern {
   position: fixed;
@@ -701,7 +708,10 @@ a { color: inherit; text-decoration: none; }
 }
 @media (max-width: 480px) {
   #thumbsContainer { padding: 0 20px; }
-  #barControls { gap: 10px; padding: 0 6px; }
+  /* Aumenta il padding destro per evitare che i pulsanti tocchino il bordo su mobile */
+  #barControls { gap: 10px; padding: 0 12px; }
+  /* Sposta leggermente il pulsante comprimi/espandi verso l'interno */
+  #toggleThumbs { margin-right: 6px; }
 }
 
 /* When a thumbnail is active, allow lift to be visible and add top padding */

@@ -113,9 +113,16 @@ function isMobileScreen() {
 function showGyroButtonIfMobile() {
   const gyroBtn = document.getElementById('gyroToggle');
   if (!gyroBtn) return;
-  // Disable gyro UI: remove/hidden on purpose (no gyroscope on smartphones)
-  // Keep fullscreen and other desktop controls untouched.
-  try { gyroBtn.style.display = 'none'; } catch(e){}
+  // Show gyro button only on mobile devices that support DeviceOrientation
+  var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
+  try {
+    if (isMobileScreen() && supported) {
+      gyroBtn.style.display = ''; // let CSS .mobile-only handle final visibility
+    } else {
+      gyroBtn.style.display = 'none';
+      try { disableGyro(); gyroBtn.classList.remove('active'); } catch(e){}
+    }
+  } catch(e) { gyroBtn.style.display = 'none'; }
 }
 
 window.addEventListener('resize', showGyroButtonIfMobile);
@@ -222,8 +229,25 @@ function disableGyro() {
 
 document.addEventListener('DOMContentLoaded', function() {
   const gyroBtn = document.getElementById('gyroToggle');
-  // Gyro feature disabled for mobile devices per request: ensure it's off and hide button.
-  if (gyroBtn) {
+  if (!gyroBtn) return;
+  var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
+  if (isMobileScreen() && supported) {
+    gyroBtn.style.display = '';
+    // attach toggle handler (guard to avoid double attach)
+    if (!gyroBtn.dataset.bound) {
+      gyroBtn.addEventListener('click', function(e) {
+        e && e.preventDefault && e.preventDefault();
+        if (!gyroActive) {
+          enableGyro();
+          gyroBtn.classList.add('active');
+        } else {
+          disableGyro();
+          gyroBtn.classList.remove('active');
+        }
+      });
+      gyroBtn.dataset.bound = '1';
+    }
+  } else {
     try { disableGyro(); gyroBtn.classList.remove('active'); gyroBtn.style.display = 'none'; } catch(e){}
   }
 });
@@ -1187,7 +1211,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var lbl = document.getElementById('lang-label');
         var flg = document.getElementById('lang-flag');
         if (lbl) lbl.textContent = (lang === 'it') ? 'IT' : 'EN';
-        if (flg) flg.textContent = (lang === 'it') ? '🇮🇹' : '🇬🇧';
+        if (flg) {
+          if (flg.tagName === 'IMG') flg.src = (lang === 'it') ? 'img/flag-it.svg' : 'img/flag-en.svg';
+          else flg.textContent = (lang === 'it') ? '🇮🇹' : '🇬🇧';
+        }
       } catch(e) {}
     }
     languageToggle.addEventListener('click', function(e) {

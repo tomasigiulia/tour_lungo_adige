@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="60" height="40">
+  <rect width="30" height="20" fill="#012169"/>
+  <g fill="#fff">
+    <rect x="0" y="8" width="30" height="4"/>
+    <rect x="13" y="0" width="4" height="20"/>
+  </g>
+  <g fill="#C8102E">
+    <rect x="0" y="9.5" width="30" height="1"/>
+    <rect x="14.5" y="0" width="1" height="20"/>
+  </g>
+  <!-- diagonal cross simplified -->
+  <g stroke="#fff" stroke-width="2" stroke-linecap="butt">
+    <line x1="0" y1="0" x2="30" y2="20" />
+    <line x1="30" y1="0" x2="0" y2="20" />
+  </g>
+  <g stroke="#C8102E" stroke-width="1" stroke-linecap="butt">
+    <line x1="0" y1="0" x2="30" y2="20" />
+    <line x1="30" y1="0" x2="0" y2="20" />
+  </g>
+</svg>

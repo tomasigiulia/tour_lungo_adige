@@ -15,7 +15,7 @@
 <!-- Tasto lingua in alto a sinistra -->
 <body>
 <a href="javascript:void(0)" id="languageToggle" class="glass-btn lang-btn-simple" aria-label="Cambia Lingua" title="Cambia la lingua dell’interfaccia" data-title-it="Cambia la lingua dell’interfaccia" data-title-en="Change interface language">
-  <span id="lang-flag" class="lang-flag">🇮🇹</span>
+  <img id="lang-flag" class="lang-flag" src="img/flag-it.svg" alt="IT">
   <span id="lang-label" class="lang-label">IT</span>
 </a>
 <script>
@@ -25,17 +25,17 @@ const langLabel = document.getElementById('lang-label');
 const langFlag = document.getElementById('lang-flag');
 let currentLang = 'it';
 languageToggle.addEventListener('click', function() {
-  if(currentLang === 'it') {
+    if(currentLang === 'it') {
     currentLang = 'en';
     langLabel.textContent = 'EN';
-    langFlag.textContent = '🇬🇧';
+    if (langFlag && langFlag.tagName === 'IMG') langFlag.src = 'img/flag-en.svg';
     document.body.classList.add('lang-en');
     document.body.classList.remove('lang-it');
     aggiornaTooltipLingua('en');
   } else {
     currentLang = 'it';
     langLabel.textContent = 'IT';
-    langFlag.textContent = '🇮🇹';
+    if (langFlag && langFlag.tagName === 'IMG') langFlag.src = 'img/flag-it.svg';
     document.body.classList.add('lang-it');
     document.body.classList.remove('lang-en');
     aggiornaTooltipLingua('it');
