@@ -1270,4 +1270,87 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initial setup
   switchScene(scenes[0]);
 
+  // --- IN-PAGE LOGGER: capture console + errors and provide download ---
+  (function setupInPageLogger() {
+    try {
+      var __LOG_BUFFER = [];
+      var __LOG_MAX = 5000;
+
+      function pushLog(level, args) {
+        try {
+          var parts = Array.prototype.slice.call(args).map(function(a) {
+            try {
+              if (typeof a === 'object') return JSON.stringify(a);
+              return String(a);
+            } catch (e) { return String(a); }
+          });
+          var entry = { time: new Date().toISOString(), level: level, message: parts.join(' ') };
+          __LOG_BUFFER.push(entry);
+          if (__LOG_BUFFER.length > __LOG_MAX) __LOG_BUFFER.shift();
+        } catch (e) {}
+      }
+
+      // Wrap console methods
+      ['log','info','warn','error','debug'].forEach(function(level) {
+        try {
+          var orig = console[level] && console[level].bind ? console[level].bind(console) : console[level];
+          console[level] = function() {
+            try { pushLog(level, arguments); } catch(e){}
+            if (orig) try { orig.apply(console, arguments); } catch(e){}
+          };
+        } catch(e){}
+      });
+
+      window.addEventListener('error', function(ev) {
+        try { pushLog('error', [ev.message + ' @' + (ev.filename || '') + ':' + (ev.lineno||'') + ':' + (ev.colno||'')]); } catch(e){}
+      }, true);
+      window.addEventListener('unhandledrejection', function(ev) {
+        try { pushLog('error', ['UnhandledRejection', ev.reason]); } catch(e){}
+      }, true);
+
+      function downloadLogs() {
+        try {
+          var text = __LOG_BUFFER.map(function(e){ return '['+e.time+'] '+e.level.toUpperCase()+': '+e.message; }).join('\n');
+          var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'tour-logs-'+(new Date().toISOString().replace(/[:.]/g,'-'))+'.txt';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 5000);
+          showLogToast('Log scaricati');
+        } catch(e) { console.error('downloadLogs failed', e); }
+      }
+
+      function showLogToast(msg) {
+        try {
+          var t = document.getElementById('log-toast');
+          if (!t) {
+            t = document.createElement('div'); t.id = 'log-toast';
+            t.style.position = 'fixed'; t.style.right = '12px'; t.style.bottom = '12px'; t.style.background = 'rgba(0,0,0,0.8)';
+            t.style.color = '#fff'; t.style.padding = '8px 12px'; t.style.borderRadius = '8px'; t.style.zIndex = 30000; t.style.fontSize = '13px';
+            document.body.appendChild(t);
+          }
+          t.textContent = msg;
+          t.style.opacity = '1';
+          setTimeout(function(){ try { t.style.transition = 'opacity 400ms'; t.style.opacity = '0'; } catch(e){} }, 1600);
+        } catch(e){}
+      }
+
+      // Expose globally so it can be called programmatically or by the button
+      window.downloadLogs = downloadLogs;
+
+      // Wire button if present
+      try {
+        var logBtn = document.getElementById('downloadLogs');
+        if (logBtn && !logBtn.dataset.bound) {
+          logBtn.addEventListener('click', function(e){ if (e && e.preventDefault) e.preventDefault(); downloadLogs(); });
+          logBtn.dataset.bound = '1';
+        }
+      } catch(e){}
+    } catch(e) { console.warn('in-page logger init failed', e); }
+  })();
+
 })();
