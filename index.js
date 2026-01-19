@@ -173,9 +173,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var btn = document.getElementById('gyroToggle');
     if (!btn) return;
     var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
-    var shouldShow = (typeof detectDeviceType === 'function' ? isDeviceMobile : (window.innerWidth <= 900 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)));
+    var shouldShow = (typeof window.isMobileScreen === 'function' ? window.isMobileScreen() : (/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)));
+
     if (shouldShow && supported) {
-      btn.style.display = 'inline-flex';
+      // allow JS to control visibility; remove any CSS hiding
+      try { btn.style.display = 'inline-flex'; btn.style.visibility = 'visible'; btn.style.opacity = '1'; } catch(e){}
       if (!btn.dataset.bound) {
         btn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); toggleGyro(); });
         btn.dataset.bound = '1';
@@ -1092,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostra solo su desktop, nascondi su mobile anche su Safari/iOS
     var isMobile = window.matchMedia('(max-width: 700px), (pointer: coarse)').matches || /iPhone|iPad|iPod/i.test(navigator.userAgent);
     var fullscreenBtn = document.getElementById('fullscreenToggle');
-    var vrBtn = document.getElementById('vrToggle');
+    var gyroBtn = document.getElementById('gyroToggle');
     if(isMobile) {
       if(fullscreenBtn) {
         fullscreenBtn.style.display = 'none';
@@ -1101,8 +1103,8 @@ document.addEventListener('DOMContentLoaded', function() {
         fullscreenBtn.style.height = '0';
       }
       // Do not expose VR/Gyro toggle on mobile — disable to avoid conflicting controls
-      if (vrBtn) {
-        try { vrBtn.style.display = 'none'; vrBtn.style.visibility = 'hidden'; vrBtn.style.opacity = '0'; vrBtn.style.height = '0'; } catch(e){}
+      if (gyroBtn) {
+        try { gyroBtn.style.display = 'none'; gyroBtn.style.visibility = 'hidden'; gyroBtn.style.opacity = '0'; gyroBtn.style.height = '0'; } catch(e){}
       }
     } else {
       if(fullscreenBtn) {
@@ -1111,11 +1113,11 @@ document.addEventListener('DOMContentLoaded', function() {
         fullscreenBtn.style.opacity = '1';
         fullscreenBtn.style.height = 'auto';
       }
-      if(vrBtn) {
-        vrBtn.style.display = 'none';
-        vrBtn.style.visibility = 'hidden';
-        vrBtn.style.opacity = '0';
-        vrBtn.style.height = '0';
+      if(gyroBtn) {
+        gyroBtn.style.display = 'none';
+        gyroBtn.style.visibility = 'hidden';
+        gyroBtn.style.opacity = '0';
+        gyroBtn.style.height = '0';
       }
       fullscreenToggle.addEventListener('click', function() { screenfull.toggle(); });
       screenfull.on('change', function() {

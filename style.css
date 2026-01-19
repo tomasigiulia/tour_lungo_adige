@@ -1063,8 +1063,8 @@ a { color: inherit; text-decoration: none; }
 
 /* Gyro toggle visibility is controlled by JS and .mobile-only rules. */
 
-/* Also ensure VR/Gyro toggle is hidden on small screens */
-#vrToggle {
+/* Also ensure Gyro toggle is hidden on small screens by default; JS will show it when appropriate */
+#gyroToggle {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
