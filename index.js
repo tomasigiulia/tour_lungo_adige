@@ -174,12 +174,32 @@ document.addEventListener('DOMContentLoaded', function() {
                   if (scenes[i].scene === active) { activeView = scenes[i].view; break; }
                 }
                 if (!activeView) return;
+
+                // Yaw: keep previous behavior (alpha -> yaw)
                 var alpha = ev.alpha;
                 if (alpha == null) return;
-                var yaw = -alpha * Math.PI / 180; // semplice mapping orizzontale
+                var yaw = -alpha * Math.PI / 180;
+
+                // Pitch: map beta (front/back tilt) to view pitch
+                // DeviceOrientation beta: range approx [-180,180]. We map so that beta ~= 90 -> pitch 0
+                // and small deviations around 90 produce small pitch changes.
+                var pitch = 0;
+                if (typeof ev.beta === 'number') {
+                  var beta = ev.beta;
+                  // Normalize beta to [-180,180]
+                  if (beta > 180) beta -= 360;
+                  // Map beta -> pitch radians: pitch = (beta - 90) deg -> 0 when beta==90
+                  pitch = (beta - 90) * Math.PI / 180;
+                  // Clamp to avoid extreme values (keep slightly within +/- 90deg)
+                  var MAX_PITCH = Math.PI/2 - 0.12; // ~~89deg safe margin
+                  if (pitch > MAX_PITCH) pitch = MAX_PITCH;
+                  if (pitch < -MAX_PITCH) pitch = -MAX_PITCH;
+                }
+
                 var curParams = null;
                 try { if (typeof activeView.parameters === 'function') curParams = activeView.parameters(); } catch(e) { curParams = null; }
-                var pitch = curParams && typeof curParams.pitch === 'number' ? curParams.pitch : 0;
+                var curYaw = curParams && typeof curParams.yaw === 'number' ? curParams.yaw : yaw;
+                // Smoothly apply yaw/pitch (direct set to stay responsive)
                 try { activeView.setParameters({ yaw: yaw, pitch: pitch }); } catch(e) {}
               } catch(e) { console.warn('manual deviceorientation handler failed', e); }
             });
