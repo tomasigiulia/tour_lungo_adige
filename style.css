@@ -125,7 +125,9 @@
 }
 .hotspot-info:hover {
   transform: scale(1.06);
-  box-shadow: 0 0 0 3px rgba(255,140,0,0.06), 0 0 18px rgba(255,140,0,0.28), 0 8px 20px rgba(0,0,0,0.36);
+  /* rendi il bollino più chiaro al passaggio del mouse */
+  background: rgba(255,180,80,0.92);
+  box-shadow: 0 0 0 3px rgba(255,180,80,0.12), 0 0 18px rgba(255,180,80,0.34), 0 8px 20px rgba(0,0,0,0.36);
 }
 .hotspot-info .hotspot-plus {
   font-size: 26px;
