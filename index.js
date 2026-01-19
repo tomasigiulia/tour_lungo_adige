@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (gyroEnabled) {
       console.log('📱 Modalità Giroscopio attivata');
-      stopAutoRotation && stopAutoRotation();
+      try { stopAutorotate(); } catch(e) {}
 
       try { window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true }); } catch(e){ window.addEventListener('deviceorientation', handleDeviceOrientation); }
 
@@ -148,21 +148,25 @@ document.addEventListener('DOMContentLoaded', function() {
       try { btn.innerHTML = svgGyroOff; } catch(e){}
       btn.classList.remove('active');
       btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio');
+      try { startAutorotate(); } catch(e) {}
     }
   }
 
   function handleDeviceOrientation(event) {
     if (!gyroEnabled || !window.viewer) return;
+
     try {
+      var scene = (typeof window.viewer.scene === 'function') ? window.viewer.scene() : null;
+      if (!scene) return;
+      var view = (typeof scene.view === 'function') ? scene.view() : null;
+      if (!view) return;
+
       var alpha = (event.alpha || 0) * Math.PI / 180;
       var beta = (event.beta || 0) * Math.PI / 180;
       var yaw = -alpha;
       var pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, -beta));
 
-      // Usa la view attiva del viewer
-      var currentScene = window.viewer && typeof window.viewer.scene === 'function' ? window.viewer.scene() : null;
-      var view = currentScene && typeof currentScene.view === 'function' ? currentScene.view() : null;
-      if (view && typeof view.setParameters === 'function') {
+      if (typeof view.setParameters === 'function') {
         view.setParameters({ yaw: yaw, pitch: pitch }, { transitionDuration: 0 });
       }
     } catch(e) { console.warn('Errore in handleDeviceOrientation:', e); }
