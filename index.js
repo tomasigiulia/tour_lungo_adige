@@ -115,9 +115,10 @@ function showGyroButtonIfMobile() {
   if (!gyroBtn) return;
   // Show gyro button only on mobile devices that support DeviceOrientation
   var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
-  try {
+    try {
     if (isMobileScreen() && supported) {
-      gyroBtn.style.display = ''; // let CSS .mobile-only handle final visibility
+      // Force visible as inline-flex so it shows even when CSS media-query threshold differs
+      gyroBtn.style.display = 'inline-flex';
     } else {
       gyroBtn.style.display = 'none';
       try { disableGyro(); gyroBtn.classList.remove('active'); } catch(e){}
@@ -232,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!gyroBtn) return;
   var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
   if (isMobileScreen() && supported) {
-    gyroBtn.style.display = '';
+  gyroBtn.style.display = 'inline-flex';
     // attach toggle handler (guard to avoid double attach)
     if (!gyroBtn.dataset.bound) {
       gyroBtn.addEventListener('click', function(e) {
