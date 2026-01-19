@@ -132,45 +132,45 @@ document.addEventListener('DOMContentLoaded', function() {
     var svgGyroOff = '<svg viewBox="0 0 24 24"><path d="M6 9l2.5-4h7l2.5 4H6zM2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" /></svg>';
     var svgGyroOn = '<svg viewBox="0 0 24 24"><path d="M2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" fill="currentColor" stroke="none"/></svg>';
 
+    // Use Marzipano native DeviceOrientation control method
+    try {
+      var controls = (window.viewer && typeof window.viewer.controls === 'function') ? window.viewer.controls() : null;
+      if (!controls) {
+        console.warn('Controls not available on viewer; cannot enable native device orientation method');
+      }
+    } catch(e) { var controls = null; }
+
     if (gyroEnabled) {
-      console.log('📱 Modalità Giroscopio attivata');
+      console.log('📱 Modalità Giroscopio attivata (Nativa)');
       try { stopAutorotate(); } catch(e) {}
 
-      try { window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true }); } catch(e){ window.addEventListener('deviceorientation', handleDeviceOrientation); }
+      try {
+        if (controls && typeof deviceOrientationControlMethod !== 'undefined') {
+          try { controls.registerMethod('deviceOrientation', deviceOrientationControlMethod, true); } catch(err) { console.warn('registerMethod failed', err); }
+        }
+      } catch(e) { console.warn('enable native gyro failed', e); }
 
       btn.innerHTML = svgGyroOn;
       btn.classList.add('active');
-      btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio') + ' (ATTIVO)';
+      try { btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio') + ' (ATTIVO)'; } catch(e){}
     } else {
       console.log('📱 Modalità Giroscopio disattivata');
-      window.removeEventListener('deviceorientation', handleDeviceOrientation);
+      try {
+        if (controls && typeof controls.unregisterMethod === 'function') {
+          try { controls.unregisterMethod('deviceOrientation'); } catch(err) { try { controls.unregisterMethod && controls.unregisterMethod('deviceOrientation'); } catch(e){} }
+        } else if (controls && typeof controls.deregisterMethod === 'function') {
+          try { controls.deregisterMethod('deviceOrientation'); } catch(e) {}
+        }
+      } catch(e) { console.warn('disable native gyro failed', e); }
 
       try { btn.innerHTML = svgGyroOff; } catch(e){}
       btn.classList.remove('active');
-      btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio');
+      try { btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio'); } catch(e){}
       try { startAutorotate(); } catch(e) {}
     }
   }
 
-  function handleDeviceOrientation(event) {
-    if (!gyroEnabled || !window.viewer) return;
-
-    try {
-      var scene = (typeof window.viewer.scene === 'function') ? window.viewer.scene() : null;
-      if (!scene) return;
-      var view = (typeof scene.view === 'function') ? scene.view() : null;
-      if (!view) return;
-
-      var alpha = (event.alpha || 0) * Math.PI / 180;
-      var beta = (event.beta || 0) * Math.PI / 180;
-      var yaw = -alpha;
-      var pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, -beta));
-
-      if (typeof view.setParameters === 'function') {
-        view.setParameters({ yaw: yaw, pitch: pitch }, { transitionDuration: 0 });
-      }
-    } catch(e) { console.warn('Errore in handleDeviceOrientation:', e); }
-  }
+  // Old manual deviceorientation handler removed — using Marzipano.DeviceOrientationControlMethod instead
 
   // Mostra/nascondi il bottone giroscopio in base al device
   (function initGyroButton() {
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.dataset.bound = '1';
       }
     } else {
-      try { window.removeEventListener('deviceorientation', handleDeviceOrientation); btn.style.display = 'none'; btn.classList.remove('active'); } catch(e){}
+      try { btn.style.display = 'none'; btn.classList.remove('active'); } catch(e){}
     }
   })();
   // --- fine giroscopio ---
@@ -326,6 +326,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var viewer = new Marzipano.Viewer(panoElement, viewerOpts);
   window.viewer = viewer;
+  // Controls and native device orientation method for Marzipano
+  var controls = viewer.controls();
+  var deviceOrientationControlMethod = null;
+  try { deviceOrientationControlMethod = new Marzipano.DeviceOrientationControlMethod(); } catch(e) { deviceOrientationControlMethod = null; }
   // --- SCENE CREATION ---
   var scenes = data.scenes.map(function(data) {
     var urlPrefix = "tiles";
