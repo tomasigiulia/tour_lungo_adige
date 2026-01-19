@@ -44,28 +44,26 @@ languageToggle.addEventListener('click', function() {
 
 function aggiornaTooltipLingua(lang) {
   // Pulsanti principali
-  document.getElementById('languageToggle').title = lang === 'it' ? document.getElementById('languageToggle').getAttribute('data-title-it') : document.getElementById('languageToggle').getAttribute('data-title-en');
-  document.getElementById('mapToggle').title = lang === 'it' ? 'Apri la mappa interattiva' : 'Open interactive map';
-  var btnLayer = document.getElementById('map-controls-cycle');
-  if (btnLayer) btnLayer.title = lang === 'it' ? 'Cambia layer' : 'Change layer';
-  var btnFit = document.getElementById('map-controls-fit');
-  if (btnFit) btnFit.title = lang === 'it' ? 'Mostra tutti' : 'Show all';
-  document.getElementById('autorotateToggle').title = lang === 'it' ? 'Attiva/disattiva rotazione automatica' : 'Enable/disable autorotation';
-  document.getElementById('fullscreenToggle').title = lang === 'it' ? 'Schermo intero' : 'Fullscreen mode';
+  var el;
+  el = document.getElementById('languageToggle'); if (el) el.title = lang === 'it' ? el.getAttribute('data-title-it') : el.getAttribute('data-title-en');
+  el = document.getElementById('mapToggle'); if (el) el.title = lang === 'it' ? 'Apri la mappa interattiva' : 'Open interactive map';
+  var btnLayer = document.getElementById('map-controls-cycle'); if (btnLayer) btnLayer.title = lang === 'it' ? 'Cambia layer' : 'Change layer';
+  var btnFit = document.getElementById('map-controls-fit'); if (btnFit) btnFit.title = lang === 'it' ? 'Mostra tutti' : 'Show all';
+  el = document.getElementById('autorotateToggle'); if (el) el.title = lang === 'it' ? 'Attiva/disattiva rotazione automatica' : 'Enable/disable autorotation';
+  el = document.getElementById('fullscreenToggle'); if (el) el.title = lang === 'it' ? 'Schermo intero' : 'Fullscreen mode';
   // correggi: usa gyroToggle (esiste nel DOM)
-  var gyroEl = document.getElementById('gyroToggle');
-  if (gyroEl) gyroEl.title = lang === 'it' ? 'Modalità Giroscopio' : 'Gyroscope mode';
-  document.getElementById('panoArrowLeft').title = lang === 'it' ? 'Panorama precedente' : 'Previous panorama';
-  document.getElementById('panoArrowRight').title = lang === 'it' ? 'Panorama successivo' : 'Next panorama';
-  document.getElementById('viewLeft').title = lang === 'it' ? 'Sposta la vista a sinistra' : 'Move view left';
-  document.getElementById('viewRight').title = lang === 'it' ? 'Sposta la vista a destra' : 'Move view right';
-  document.getElementById('viewUp').title = lang === 'it' ? 'Sposta la vista in alto' : 'Move view up';
-  document.getElementById('viewDown').title = lang === 'it' ? 'Sposta la vista in basso' : 'Move view down';
-  document.getElementById('viewOut').title = lang === 'it' ? 'Riduci la vista (Zoom Out)' : 'Zoom out';
-  document.getElementById('viewIn').title = lang === 'it' ? 'Ingrandisci la vista (Zoom In)' : 'Zoom in';
-  document.getElementById('toggleThumbs').title = lang === 'it' ? 'Mostra/nascondi anteprime panorami' : 'Show/hide panorama thumbnails';
-  document.getElementById('thumbPrev').title = lang === 'it' ? 'Panorama precedente' : 'Previous panorama';
-  document.getElementById('thumbNext').title = lang === 'it' ? 'Panorama successivo' : 'Next panorama';
+  var gyroEl = document.getElementById('gyroToggle'); if (gyroEl) gyroEl.title = lang === 'it' ? 'Modalità Giroscopio' : 'Gyroscope mode';
+  el = document.getElementById('panoArrowLeft'); if (el) el.title = lang === 'it' ? 'Panorama precedente' : 'Previous panorama';
+  el = document.getElementById('panoArrowRight'); if (el) el.title = lang === 'it' ? 'Panorama successivo' : 'Next panorama';
+  el = document.getElementById('viewLeft'); if (el) el.title = lang === 'it' ? 'Sposta la vista a sinistra' : 'Move view left';
+  el = document.getElementById('viewRight'); if (el) el.title = lang === 'it' ? 'Sposta la vista a destra' : 'Move view right';
+  el = document.getElementById('viewUp'); if (el) el.title = lang === 'it' ? 'Sposta la vista in alto' : 'Move view up';
+  el = document.getElementById('viewDown'); if (el) el.title = lang === 'it' ? 'Sposta la vista in basso' : 'Move view down';
+  el = document.getElementById('viewOut'); if (el) el.title = lang === 'it' ? 'Riduci la vista (Zoom Out)' : 'Zoom out';
+  el = document.getElementById('viewIn'); if (el) el.title = lang === 'it' ? 'Ingrandisci la vista (Zoom In)' : 'Zoom in';
+  el = document.getElementById('toggleThumbs'); if (el) el.title = lang === 'it' ? 'Mostra/nascondi anteprime panorami' : 'Show/hide panorama thumbnails';
+  el = document.getElementById('thumbPrev'); if (el) el.title = lang === 'it' ? 'Panorama precedente' : 'Previous panorama';
+  el = document.getElementById('thumbNext'); if (el) el.title = lang === 'it' ? 'Panorama successivo' : 'Next panorama';
 }
 // Imposta tooltip iniziali
 document.addEventListener('DOMContentLoaded', function() {

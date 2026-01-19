@@ -102,6 +102,8 @@ document.addEventListener('DOMContentLoaded', function() {
   /* --- GIROSCOPIO: lazy-init definitivo (crea il metodo solo dopo click/permesso) --- */
   var deviceOrientationControlMethod = null;
   var gyroEnabled = false;
+  var deviceOrientationHandler = null;
+  var deviceOrientationPending = false;
 
   function toggleGyro() {
     var btn = document.getElementById('gyroToggle');
@@ -142,12 +144,48 @@ document.addEventListener('DOMContentLoaded', function() {
     if (gyroEnabled) {
       try { stopAutorotate(); } catch(e){}
 
+
       if (!deviceOrientationControlMethod) {
-        try { deviceOrientationControlMethod = new Marzipano.DeviceOrientationControlMethod(); } catch(e) { console.error('Errore creazione giroscopio:', e); deviceOrientationControlMethod = null; }
+        try {
+          deviceOrientationControlMethod = new Marzipano.DeviceOrientationControlMethod();
+        } catch(e) {
+          console.error('Errore creazione giroscopio (native unavailable):', e);
+          deviceOrientationControlMethod = null;
+        }
       }
 
       if (controls && deviceOrientationControlMethod) {
         try { controls.registerMethod('deviceOrientation', deviceOrientationControlMethod, true); } catch(e) { console.warn('registerMethod failed', e); }
+      } else if (!deviceOrientationControlMethod && controls) {
+        // Fallback manuale: registra listener deviceorientation che imposta lo yaw
+        if (!deviceOrientationHandler) {
+          deviceOrientationHandler = function(ev) {
+            if (deviceOrientationPending) return;
+            deviceOrientationPending = true;
+            requestAnimationFrame(function() {
+              deviceOrientationPending = false;
+              try {
+                if (!viewer || typeof viewer.scene !== 'function') return;
+                var active = viewer.scene();
+                if (!active) return;
+                // trova la view corrispondente nell'array scenes
+                var activeView = null;
+                for (var i = 0; i < scenes.length; i++) {
+                  if (scenes[i].scene === active) { activeView = scenes[i].view; break; }
+                }
+                if (!activeView) return;
+                var alpha = ev.alpha;
+                if (alpha == null) return;
+                var yaw = -alpha * Math.PI / 180; // semplice mapping orizzontale
+                var curParams = null;
+                try { if (typeof activeView.parameters === 'function') curParams = activeView.parameters(); } catch(e) { curParams = null; }
+                var pitch = curParams && typeof curParams.pitch === 'number' ? curParams.pitch : 0;
+                try { activeView.setParameters({ yaw: yaw, pitch: pitch }); } catch(e) {}
+              } catch(e) { console.warn('manual deviceorientation handler failed', e); }
+            });
+          };
+        }
+        try { window.addEventListener('deviceorientation', deviceOrientationHandler, true); } catch(e) { console.warn('addEventListener deviceorientation failed', e); }
       }
 
       try { btn.innerHTML = svgGyroOn; btn.classList.add('active'); } catch(e){}
@@ -157,6 +195,8 @@ document.addEventListener('DOMContentLoaded', function() {
           if (typeof controls.deregisterMethod === 'function') controls.deregisterMethod('deviceOrientation');
           else if (typeof controls.unregisterMethod === 'function') controls.unregisterMethod('deviceOrientation');
         } catch(e) { console.warn('disable native gyro failed', e); }
+        // remove manual fallback listener if present
+        try { if (deviceOrientationHandler) { window.removeEventListener('deviceorientation', deviceOrientationHandler, true); } } catch(e) {}
       }
       try { btn.innerHTML = svgGyroOff; btn.classList.remove('active'); } catch(e){}
       try { startAutorotate(); } catch(e){}
