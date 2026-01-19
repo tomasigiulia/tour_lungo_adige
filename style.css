@@ -1063,12 +1063,14 @@ a { color: inherit; text-decoration: none; }
 
 /* Gyro toggle visibility is controlled by JS and .mobile-only rules. */
 
-/* Also ensure Gyro toggle is hidden on small screens by default; JS will show it when appropriate */
+/* Gyro toggle visibility is controlled by JS. Removed hard-hide so JS can show it when supported. */
+/*
 #gyroToggle {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }
+*/
 
 /* Pulsanti zoom mappa Leaflet custom */
 .leaflet-control-zoom .leaflet-control-zoom-in,
