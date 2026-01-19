@@ -159,8 +159,16 @@ function enableGyro() {
     var smoothing = 0.12; // between 0 (no move) and 1 (immediate)
     lastYaw = lastYaw + (targetYaw - lastYaw) * smoothing;
 
-    if (window.viewer && window.viewer.view && typeof window.viewer.view.setYaw === 'function') {
-      try { window.viewer.view.setYaw(lastYaw); } catch(e) {}
+    if (window.viewer) {
+      try {
+        var currentScene = window.viewer.scene && window.viewer.scene();
+        if (currentScene) {
+          var currentView = currentScene.view && currentScene.view();
+          if (currentView && typeof currentView.setYaw === 'function') {
+            try { currentView.setYaw(lastYaw); } catch(e) {}
+          }
+        }
+      } catch(e) { /* safe fallback if viewer API differs */ }
     }
   }
 
