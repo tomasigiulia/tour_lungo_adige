@@ -99,15 +99,16 @@ window.isMobileScreen = function() {
 
 (function() {
 document.addEventListener('DOMContentLoaded', function() {
-  // --- GIROSCOPIO (portato dall'esempio funzionante) ---
+  /* --- GIROSCOPIO: lazy-init definitivo (crea il metodo solo dopo click/permesso) --- */
+  var deviceOrientationControlMethod = null;
   var gyroEnabled = false;
-  // Usa l'ID presente in markup: `gyroToggle`
+
   function toggleGyro() {
     var btn = document.getElementById('gyroToggle');
     if (!btn) return;
 
-    if (typeof DeviceOrientationEvent === 'undefined') {
-      alert('Questo dispositivo non supporta il giroscopio.');
+    if (!window.DeviceOrientationEvent) {
+      alert('Il tuo dispositivo non supporta il giroscopio.');
       return;
     }
 
@@ -117,10 +118,14 @@ document.addEventListener('DOMContentLoaded', function() {
           if (permissionState === 'granted') {
             activateGyroLogic(btn);
           } else {
-            alert('Permesso giroscopio negato. Abilita in Impostazioni > Privacy > Movimento e orientamento.');
+            alert('Permesso negato. Vai in Impostazioni > Safari > Accesso movim. e orientamento');
           }
         })
-        .catch(function(err) { console.warn('Errore richiesta permesso giroscopio:', err); });
+        .catch(function(err) {
+          console.warn(err);
+          // Su alcuni Android può fallire ma funzionare: proviamo comunque
+          activateGyroLogic(btn);
+        });
     } else {
       activateGyroLogic(btn);
     }
@@ -129,68 +134,55 @@ document.addEventListener('DOMContentLoaded', function() {
   function activateGyroLogic(btn) {
     gyroEnabled = !gyroEnabled;
 
-    var svgGyroOff = '<svg viewBox="0 0 24 24"><path d="M6 9l2.5-4h7l2.5 4H6zM2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" /></svg>';
-    var svgGyroOn = '<svg viewBox="0 0 24 24"><path d="M2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6H2zm4 3a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" fill="currentColor" stroke="none"/></svg>';
+    var svgGyroOff = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="2" y="7" width="20" height="10" rx="3" fill="rgba(52,152,219,0.18)" stroke="#fff"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>';
+    var svgGyroOn = '<svg viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="2" y="7" width="20" height="10" rx="3" fill="rgba(52,152,219,0.3)" stroke="#3498db"/><circle cx="12" cy="12" r="4" fill="#3498db"/></svg>';
 
-    // Use Marzipano native DeviceOrientation control method
-    try {
-      var controls = (window.viewer && typeof window.viewer.controls === 'function') ? window.viewer.controls() : null;
-      if (!controls) {
-        console.warn('Controls not available on viewer; cannot enable native device orientation method');
-      }
-    } catch(e) { var controls = null; }
+    var controls = (window.viewer && typeof window.viewer.controls === 'function') ? window.viewer.controls() : null;
 
     if (gyroEnabled) {
-      console.log('📱 Modalità Giroscopio attivata (Nativa)');
-      try { stopAutorotate(); } catch(e) {}
+      try { stopAutorotate(); } catch(e){}
 
-      try {
-        if (controls && typeof deviceOrientationControlMethod !== 'undefined') {
-          try { controls.registerMethod('deviceOrientation', deviceOrientationControlMethod, true); } catch(err) { console.warn('registerMethod failed', err); }
-        }
-      } catch(e) { console.warn('enable native gyro failed', e); }
+      if (!deviceOrientationControlMethod) {
+        try { deviceOrientationControlMethod = new Marzipano.DeviceOrientationControlMethod(); } catch(e) { console.error('Errore creazione giroscopio:', e); deviceOrientationControlMethod = null; }
+      }
 
-      btn.innerHTML = svgGyroOn;
-      btn.classList.add('active');
-      try { btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio') + ' (ATTIVO)'; } catch(e){}
+      if (controls && deviceOrientationControlMethod) {
+        try { controls.registerMethod('deviceOrientation', deviceOrientationControlMethod, true); } catch(e) { console.warn('registerMethod failed', e); }
+      }
+
+      try { btn.innerHTML = svgGyroOn; btn.classList.add('active'); } catch(e){}
     } else {
-      console.log('📱 Modalità Giroscopio disattivata');
-      try {
-        if (controls && typeof controls.unregisterMethod === 'function') {
-          try { controls.unregisterMethod('deviceOrientation'); } catch(err) { try { controls.unregisterMethod && controls.unregisterMethod('deviceOrientation'); } catch(e){} }
-        } else if (controls && typeof controls.deregisterMethod === 'function') {
-          try { controls.deregisterMethod('deviceOrientation'); } catch(e) {}
-        }
-      } catch(e) { console.warn('disable native gyro failed', e); }
-
-      try { btn.innerHTML = svgGyroOff; } catch(e){}
-      btn.classList.remove('active');
-      try { btn.title = (typeof getTranslation === 'function' ? getTranslation('gyroMode') : 'Giroscopio'); } catch(e){}
-      try { startAutorotate(); } catch(e) {}
+      if (controls) {
+        try {
+          if (typeof controls.deregisterMethod === 'function') controls.deregisterMethod('deviceOrientation');
+          else if (typeof controls.unregisterMethod === 'function') controls.unregisterMethod('deviceOrientation');
+        } catch(e) { console.warn('disable native gyro failed', e); }
+      }
+      try { btn.innerHTML = svgGyroOff; btn.classList.remove('active'); } catch(e){}
+      try { startAutorotate(); } catch(e){}
     }
   }
 
-  // Old manual deviceorientation handler removed — using Marzipano.DeviceOrientationControlMethod instead
-
-  // Mostra/nascondi il bottone giroscopio in base al device
-  (function initGyroButton() {
-    var btn = document.getElementById('gyroToggle');
-    if (!btn) return;
-    var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
-    var shouldShow = (typeof window.isMobileScreen === 'function' ? window.isMobileScreen() : (/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)));
-
-    if (shouldShow && supported) {
-      // allow JS to control visibility; remove any CSS hiding
-      try { btn.style.display = 'inline-flex'; btn.style.visibility = 'visible'; btn.style.opacity = '1'; } catch(e){}
-      if (!btn.dataset.bound) {
-        btn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); toggleGyro(); });
-        btn.dataset.bound = '1';
-      }
-    } else {
-      try { btn.style.display = 'none'; btn.classList.remove('active'); } catch(e){}
+  // Aggancia evento al pulsante (safe bind)
+  (function bindGyroBtn() {
+    var gyroBtn = document.getElementById('gyroToggle');
+    if (!gyroBtn) return;
+    if (!gyroBtn.dataset.bound) {
+      gyroBtn.addEventListener('click', function(e){ if (e && e.preventDefault) e.preventDefault(); toggleGyro(); });
+      gyroBtn.dataset.bound = '1';
     }
+    // Mostra il pulsante solo su mobile/smartphone con supporto sensori
+    try {
+      var supported = (typeof DeviceOrientationEvent !== 'undefined') && (typeof DeviceOrientationEvent.requestPermission === 'function' || 'ondeviceorientation' in window);
+      var shouldShow = (typeof window.isMobileScreen === 'function' ? window.isMobileScreen() : /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent));
+      if (shouldShow && supported) {
+        gyroBtn.style.display = 'inline-flex'; gyroBtn.style.visibility = 'visible'; gyroBtn.style.opacity = '1';
+      } else {
+        gyroBtn.style.display = 'none';
+      }
+    } catch(e){}
   })();
-  // --- fine giroscopio ---
+  /* --- fine giroscopio --- */
 });
 // ...existing code...
       // Frecce laterali panorama
@@ -326,10 +318,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var viewer = new Marzipano.Viewer(panoElement, viewerOpts);
   window.viewer = viewer;
-  // Controls and native device orientation method for Marzipano
+  // Controls (deviceOrientationControlMethod will be created lazily when the user enables gyro)
   var controls = viewer.controls();
-  var deviceOrientationControlMethod = null;
-  try { deviceOrientationControlMethod = new Marzipano.DeviceOrientationControlMethod(); } catch(e) { deviceOrientationControlMethod = null; }
   // --- SCENE CREATION ---
   var scenes = data.scenes.map(function(data) {
     var urlPrefix = "tiles";
@@ -1102,7 +1092,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostra solo su desktop, nascondi su mobile anche su Safari/iOS
     var isMobile = window.matchMedia('(max-width: 700px), (pointer: coarse)').matches || /iPhone|iPad|iPod/i.test(navigator.userAgent);
     var fullscreenBtn = document.getElementById('fullscreenToggle');
-    var gyroBtn = document.getElementById('gyroToggle');
     if(isMobile) {
       if(fullscreenBtn) {
         fullscreenBtn.style.display = 'none';
@@ -1110,10 +1099,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fullscreenBtn.style.opacity = '0';
         fullscreenBtn.style.height = '0';
       }
-      // Do not expose VR/Gyro toggle on mobile — disable to avoid conflicting controls
-      if (gyroBtn) {
-        try { gyroBtn.style.display = 'none'; gyroBtn.style.visibility = 'hidden'; gyroBtn.style.opacity = '0'; gyroBtn.style.height = '0'; } catch(e){}
-      }
+      // NOTE: We intentionally do NOT hide the gyro button here — it's controlled elsewhere and
+      // requires user interaction on mobile (iOS permission flow). Hiding it would prevent users
+      // from granting DeviceOrientation permission.
     } else {
       if(fullscreenBtn) {
         fullscreenBtn.style.display = 'inline-flex';
